@@ -2,85 +2,188 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Super Admin Dashboard</title>
+    <title>SaaS Super Admin (OriginOS)</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        body { background: #0F172A; color: white; font-family: 'Prompt', sans-serif; padding: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 20px; margin-bottom: 30px;}
-        table { width: 100%; border-collapse: collapse; background: #1E293B; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.2);}
-        th, td { padding: 18px; border-bottom: 1px solid #334155; text-align: left; }
-        th { background: #3B82F6; font-size: 1.1rem;}
-        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; color:white; font-weight:bold; transition: 0.2s;}
+        :root { --bg: #0B0F19; --card: rgba(30, 41, 59, 0.8); --primary: #0EA5E9; --success: #10B981; --danger: #EF4444; }
+        body { background: var(--bg); color: white; font-family: 'Prompt', sans-serif; padding: 30px; margin: 0;}
+        .glass { background: var(--card); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); }
+
+        /* Login Screen */
+        #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .login-box { padding: 40px; width: 100%; max-width: 400px; text-align: center; }
+        .login-box input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px; font-size: 1.1rem; outline: none; }
+
+        #dashboard { display: none; max-width: 1400px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; margin-bottom: 25px;}
+        
+        .stat-boxes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px; }
+        .stat-box { padding: 25px; }
+        .stat-box h3 { color: #94A3B8; margin: 0 0 10px 0; font-size: 1.1rem; }
+        .stat-box span { font-size: 2.5rem; font-weight: bold; color: var(--primary); }
+
+        /* 🔴 Visual Stats Bar */
+        .progress-bar { width: 100%; height: 12px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 15px; overflow: hidden; display: flex; }
+        .bar-active { background: var(--success); height: 100%; transition: 0.5s; }
+        .bar-suspend { background: var(--danger); height: 100%; transition: 0.5s; }
+
+        .controls { padding: 25px; margin-bottom: 25px; display: flex; gap: 15px; align-items: flex-end;}
+        .controls input { padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; width: 400px; outline:none; font-size:1.1rem;}
+        
+        table { width: 100%; border-collapse: collapse; overflow: hidden;}
+        th, td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
+        th { background: rgba(14, 165, 233, 0.15); color: var(--primary); font-size: 1.1rem;}
+        
+        .btn { padding: 12px 24px; border-radius: 12px; border: none; cursor: pointer; color:white; font-weight:bold; transition: 0.2s; font-size:1rem;}
         .btn:active { transform: scale(0.95); }
+        .status-badge { padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
+        .bg-active { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .bg-suspend { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+        
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(10px);}
+        .modal { padding: 40px; width: 450px; }
+        .modal input, .modal select { width: 100%; padding: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 12px; font-size: 1.1rem;}
     </style>
 </head>
 <body>
-    <div class="header">
-        <div>
-            <h1 style="margin:0;"><i class="fa-solid fa-user-gear"></i> ระบบจัดการหลังบ้านสูงสุด (Super Admin)</h1>
-            <p style="color:#94A3B8; margin-top:5px;">ดึงข้อมูลแบบ Real-time จาก Google Sheets</p>
+
+    <div id="login-screen">
+        <div class="login-box glass">
+            <i class="fa-solid fa-fingerprint" style="font-size: 80px; color: var(--primary); margin-bottom: 20px;"></i>
+            <h2 style="margin-bottom: 30px; font-size:2rem;">Super Admin</h2>
+            <input type="password" id="admin-pass" placeholder="กรอกรหัสผ่านเพื่อเข้าถึง">
+            <button class="btn" style="background: var(--primary); width:100%; font-size:1.2rem;" onclick="adminLogin()">ยืนยันตัวตน</button>
         </div>
-        <button class="btn" style="background: #10B981; font-size:1.1rem;" onclick="loadAllUsers()"><i class="fa-solid fa-rotate"></i> รีเฟรชข้อมูล</button>
     </div>
-    
-    <table id="user-table">
-        <thead>
-            <tr><th>รหัสเครื่อง (ID)</th><th>ชื่อผู้ใช้งาน</th><th>อายุ</th><th>โรคประจำตัว</th><th>เบอร์โทรศัพท์</th><th>จัดการ</th></tr>
-        </thead>
-        <tbody id="user-body">
-            <tr><td colspan="6" style="text-align:center; padding: 30px; font-size:1.2rem;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</td></tr>
-        </tbody>
-    </table>
+
+    <div id="dashboard">
+        <div class="header">
+            <div>
+                <h1 style="margin:0; color:var(--primary); font-size:2.5rem;"><i class="fa-solid fa-server"></i> SaaS Dashboard</h1>
+                <p style="color:#94A3B8; margin-top:5px; font-size:1.2rem;">ศูนย์ควบคุมระบบส่วนกลาง (OriginOS Edition)</p>
+            </div>
+            <div>
+                <button class="btn" style="background: var(--danger); margin-right: 10px;" onclick="batchSuspend()"><i class="fa-solid fa-ban"></i> ระงับบัญชีที่หมดอายุ</button>
+                <button class="btn" style="background: #10B981;" onclick="downloadCSV()"><i class="fa-solid fa-file-csv"></i> Export Data</button>
+            </div>
+        </div>
+
+        <div class="stat-boxes">
+            <div class="stat-box glass"><h3>ผู้ใช้งานทั้งหมด</h3><span id="stat-total">0</span>
+                <div class="progress-bar"><div id="bar-active" class="bar-active"></div><div id="bar-suspend" class="bar-suspend"></div></div>
+            </div>
+            <div class="stat-box glass"><h3>สถานะ Active</h3><span id="stat-active" style="color:var(--success);">0</span></div>
+            <div class="stat-box glass"><h3>ถูกระงับการใช้งาน</h3><span id="stat-suspend" style="color:var(--danger);">0</span></div>
+            <div class="stat-box glass"><h3>รายได้ประเมิน (เดือน)</h3><span style="color:#F59E0B;">฿ <span id="stat-money">0</span></span></div>
+        </div>
+
+        <div class="controls glass">
+            <div>
+                <label style="color:#94A3B8; font-weight:bold; display:block; margin-bottom:8px;"><i class="fa-solid fa-bullhorn"></i> ส่งประกาศสวรรค์ (Broadcast)</label>
+                <input type="text" id="broadcast-msg" placeholder="พิมพ์ข้อความที่ต้องการส่งให้ทุกเครื่อง...">
+            </div>
+            <button class="btn" style="background: #F59E0B; height: 53px;" onclick="sendBroadcast()"><i class="fa-solid fa-paper-plane"></i> ส่งประกาศ</button>
+            <button class="btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); margin-left:auto; height: 53px;" onclick="loadAllUsers()"><i class="fa-solid fa-rotate"></i> โหลดข้อมูลใหม่</button>
+        </div>
+        
+        <table id="user-table" class="glass">
+            <thead>
+                <tr><th>System ID</th><th>ชื่อลูกค้า</th><th>เบอร์โทรศัพท์</th><th>วันหมดอายุ</th><th>รหัสผ่าน (User)</th><th>สถานะ</th><th>จัดการบัญชี</th></tr>
+            </thead>
+            <tbody id="user-body">
+                <tr><td colspan="7" style="text-align:center; padding: 40px; font-size:1.2rem;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal glass">
+            <h2 style="color:var(--primary); margin-bottom:25px; font-size:1.8rem;">จัดการบัญชี: <span id="edit-id" style="color:white;"></span></h2>
+            <label style="color:#94A3B8; text-align:left; display:block; margin-bottom:10px;">วันหมดอายุ (YYYY-MM-DD)</label>
+            <input type="date" id="edit-expiry">
+            <label style="color:#94A3B8; text-align:left; display:block; margin-bottom:10px;">สถานะบัญชี</label>
+            <select id="edit-status">
+                <option value="Active">ใช้งานปกติ (Active)</option>
+                <option value="Suspended">ระงับการใช้งาน (Suspended)</option>
+            </select>
+            <div style="display:flex; gap:15px; margin-top:20px;">
+                <button class="btn" style="background:var(--success); flex:1;" onclick="saveSubscription()">บันทึกข้อมูล</button>
+                <button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="document.getElementById('edit-modal').style.display='none'">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzph3otQ0ERZxWxwb8t-GrJbDeuzz9K4zMUCl4DpacNNItpZXX5OgoRKKwqfymLLn6fAw/exec";
-        
+        const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+        let globalData = [];
+
+        // 🔴 ระบบ Login Super Admin (รหัสคือ admin123)
+        function adminLogin() {
+            const pass = document.getElementById('admin-pass').value;
+            if(pass === "admin123") {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                loadAllUsers();
+            } else { alert("รหัสผ่านไม่ถูกต้อง"); }
+        }
+
         async function loadAllUsers() {
-            const body = document.getElementById('user-body');
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 30px; font-size:1.2rem;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
+            const body = document.getElementById('user-body'); body.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
             try {
-                const res = await fetch(GAS_URL + "?action=readAll");
-                const text = await res.text();
+                const res = await fetch(GAS_URL + "?action=readAll", { redirect: "follow" });
+                const text = await res.text(); const data = JSON.parse(text); globalData = data;
+                body.innerHTML = ""; let activeCount = 0, suspendCount = 0, totalCount = 0;
+                if(data.length <= 1) { body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94A3B8;">ยังไม่มีผู้ใช้งาน</td></tr>'; return; }
                 
-                try {
-                    const data = JSON.parse(text);
-                    body.innerHTML = "";
-                    if(data.length <= 1) { body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:#94A3B8;">ยังไม่มีผู้ใช้งานในระบบ</td></tr>'; return; }
-                    
-                    for (let i = 1; i < data.length; i++) {
-                        if(!data[i][0]) continue;
-                        body.innerHTML += `
-                            <tr>
-                                <td style="color:#38BDF8; font-weight:bold;">${data[i][0]}</td>
-                                <td style="font-weight:bold;">${data[i][1] || ''} ${data[i][2] || ''}</td>
-                                <td>${data[i][3] || '-'}</td>
-                                <td>${data[i][5] || '-'}</td>
-                                <td>${data[i][7] || '-'}</td>
-                                <td><button class="btn" style="background:#EF4444;" onclick="deleteUser('${data[i][0]}')"><i class="fa-solid fa-trash"></i> ลบ</button></td>
-                            </tr>`;
-                    }
-                } catch(e) {
-                    body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#F59E0B; padding:30px;">⚠️ ข้อมูลที่ส่งมาไม่ใช่ JSON โปรดตรวจสอบ Apps Script</td></tr>';
+                for (let i = 1; i < data.length; i++) {
+                    if(!data[i][0]) continue; totalCount++;
+                    let status = data[i][12] || "Active"; let expiry = data[i][11] ? data[i][11].split('T')[0] : "ไม่ระบุ"; let pass = data[i][13] || "-";
+                    if(status === "Active") activeCount++; else suspendCount++;
+                    let badgeClass = status === "Active" ? "bg-active" : "bg-suspend";
+
+                    body.innerHTML += `
+                        <tr>
+                            <td style="font-weight:bold; color:var(--primary);">${data[i][0]}</td>
+                            <td>${data[i][1] || ''} ${data[i][2] || '-'}</td>
+                            <td>${data[i][7] || '-'}</td>
+                            <td style="font-family: monospace; font-size:1.1rem; color: ${status === 'Active' ? 'white' : 'var(--danger)'};">${expiry}</td>
+                            <td style="color:#94A3B8;">${pass}</td>
+                            <td><span class="status-badge ${badgeClass}">${status}</span></td>
+                            <td>
+                                <button class="btn" style="background:rgba(14, 165, 233, 0.2); color:var(--primary); border:1px solid var(--primary); margin-right:10px;" onclick="openEdit('${data[i][0]}', '${expiry}', '${status}')"><i class="fa-solid fa-pen"></i></button>
+                                <button class="btn" style="background:rgba(239, 68, 68, 0.2); color:var(--danger); border:1px solid var(--danger);" onclick="deleteUser('${data[i][0]}')"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>`;
                 }
-            } catch(error) {
-                body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#EF4444; padding:30px;">❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: ${error.message}</td></tr>`;
+                document.getElementById('stat-total').innerText = totalCount; document.getElementById('stat-active').innerText = activeCount; document.getElementById('stat-suspend').innerText = suspendCount; document.getElementById('stat-money').innerText = (activeCount * 299).toLocaleString(); 
+                document.getElementById('bar-active').style.width = `${(activeCount/totalCount)*100}%`; document.getElementById('bar-suspend').style.width = `${(suspendCount/totalCount)*100}%`;
+            } catch(e) { body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--warning);">ดึงข้อมูลไม่สำเร็จ โปรดเช็ค Apps Script</td></tr>'; }
+        }
+
+        // 🔴 ระบบ Batch Suspend
+        async function batchSuspend() {
+            if(confirm("ยืนยันระงับบัญชีที่เลยวันหมดอายุทั้งหมดอัตโนมัติ?")) {
+                await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "data=" + encodeURIComponent(JSON.stringify({action: "batchSuspend"})) });
+                alert("ระบบทำการเคลียร์บัญชีหมดอายุเรียบร้อยแล้ว"); loadAllUsers();
             }
         }
 
-        function deleteUser(id) {
-            if(confirm("ยืนยันการลบบัญชี " + id + " ออกจากระบบถาวร?")) {
-                fetch(GAS_URL, { 
-                    method: "POST", 
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: "data=" + encodeURIComponent(JSON.stringify({action: "delete", system_id: id})) 
-                }).then(() => {
-                    alert("ลบข้อมูลสำเร็จ!");
-                    loadAllUsers();
-                });
-            }
+        function sendBroadcast() { const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg); alert("ส่งประกาศสำเร็จ"); document.getElementById('broadcast-msg').value = ""; }
+
+        function openEdit(id, expiry, status) { document.getElementById('edit-id').innerText = id; document.getElementById('edit-expiry').value = expiry !== "ไม่ระบุ" ? expiry : ""; document.getElementById('edit-status').value = status; document.getElementById('edit-modal').style.display = 'flex'; }
+
+        async function saveSubscription() {
+            const id = document.getElementById('edit-id').innerText; const expiry = document.getElementById('edit-expiry').value; const status = document.getElementById('edit-status').value;
+            await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "data=" + encodeURIComponent(JSON.stringify({action: "updateSubscription", system_id: id, expiry: expiry, status: status})) });
+            client.publish(`familycare/${id}/command/status_update`, status);
+            document.getElementById('edit-modal').style.display = 'none'; loadAllUsers();
         }
-        window.onload = loadAllUsers;
+
+        function deleteUser(id) { if(confirm("ยืนยันลบบัญชี " + id + "?")) { fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "data=" + encodeURIComponent(JSON.stringify({action: "delete", system_id: id})) }).then(() => loadAllUsers()); } }
+        function downloadCSV() { if(globalData.length <= 1) return alert("ไม่มีข้อมูล"); let csv = "data:text/csv;charset=utf-8,\uFEFF"; globalData.forEach(row => { csv += row.join(",") + "\r\n"; }); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "Customer_Data.csv"); document.body.appendChild(link); link.click(); }
     </script>
 </body>
 </html>
