@@ -1,1 +1,68 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Super Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #0F172A; color: white; font-family: 'Prompt', sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1E293B; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; border-bottom: 1px solid #334155; text-align: left; }
+        th { background: #3B82F6; }
+        .btn { padding: 8px 15px; border-radius: 5px; border: none; cursor: pointer; color:white; font-weight:bold; transition: 0.2s;}
+        .btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+    <h1><i class="fa-solid fa-user-gear"></i> ระบบจัดการหลังบ้านสูงสุด (Super Admin)</h1>
+    <button class="btn" style="background: #10B981;" onclick="loadAllUsers()"><i class="fa-solid fa-rotate"></i> รีเฟรชข้อมูล</button>
+    
+    <table id="user-table">
+        <thead>
+            <tr><th>รหัสเครื่อง (ID)</th><th>ชื่อผู้สูงอายุ</th><th>อายุ</th><th>โรคประจำตัว</th><th>ยาที่ทาน</th><th>นัดหมาย</th><th>จัดการ</th></tr>
+        </thead>
+        <tbody id="user-body">
+            <tr><td colspan="7" style="text-align:center;">กำลังโหลดข้อมูลจาก Cloud...</td></tr>
+        </tbody>
+    </table>
 
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzph3otQ0ERZxWxwb8t-GrJbDeuzz9K4zMUCl4DpacNNItpZXX5OgoRKKwqfymLLn6fAw/exec";
+        
+        async function loadAllUsers() {
+            try {
+                const res = await fetch(GAS_URL + "?action=readAll");
+                const data = await res.json();
+                const body = document.getElementById('user-body');
+                body.innerHTML = "";
+                if(data.length <= 1) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;">ยังไม่มีผู้ใช้งานในระบบ</td></tr>'; return; }
+                
+                // วนลูปเริ่มจาก index 1 ข้าม Header ของ Sheet
+                for (let i = 1; i < data.length; i++) {
+                    body.innerHTML += `
+                        <tr>
+                            <td style="color:#38BDF8; font-weight:bold;">${data[i][0]}</td>
+                            <td>${data[i][1]} ${data[i][2]}</td>
+                            <td>${data[i][3]}</td>
+                            <td>${data[i][5]}</td>
+                            <td style="font-size:12px; max-width:200px;">${data[i][8]}</td>
+                            <td>${data[i][9]}</td>
+                            <td><button class="btn" style="background:#EF4444;" onclick="deleteUser('${data[i][0]}')"><i class="fa-solid fa-trash"></i> ลบ</button></td>
+                        </tr>`;
+                }
+            } catch(e) {
+                document.getElementById('user-body').innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>';
+            }
+        }
+
+        async function deleteUser(id) {
+            if(confirm("ยืนยันการลบบัญชี " + id + " ออกจากระบบถาวร?")) {
+                await fetch(GAS_URL, { method: "POST", body: JSON.stringify({action: "delete", system_id: id}) });
+                loadAllUsers();
+            }
+        }
+        window.onload = loadAllUsers;
+    </script>
+</body>
+</html>
