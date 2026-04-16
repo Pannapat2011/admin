@@ -2,134 +2,176 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>SaaS Super Admin (OriginOS)</title>
+    <title>SaaS Super Admin (Enterprise)</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        :root { --bg: #0B0F19; --card: rgba(30, 41, 59, 0.8); --primary: #0EA5E9; --primary-grad: linear-gradient(135deg, #0EA5E9, #3B82F6); --success: #10B981; --danger: #EF4444; }
+        :root { --bg: #040914; --card: rgba(20, 27, 45, 0.8); --primary: #0EA5E9; --primary-grad: linear-gradient(135deg, #0EA5E9, #3B82F6); --success: #10B981; --danger: #EF4444; }
         * { outline: none; box-sizing: border-box;}
-        body { background: var(--bg); color: white; font-family: 'Prompt', sans-serif; padding: 30px; margin: 0; background-image: radial-gradient(circle at 10% 10%, rgba(14,165,233,0.1) 0%, transparent 60%);}
-        .glass { background: var(--card); backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 28px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); }
+        body { background: var(--bg); color: white; font-family: 'Prompt', sans-serif; padding: 0; margin: 0; display:flex; height: 100vh;}
+        .glass { background: var(--card); backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); }
 
+        /* 🔴 Sidebar Layout */
+        .sidebar { width: 280px; background: rgba(15, 23, 42, 0.95); border-right: 1px solid rgba(255,255,255,0.05); padding: 30px 20px; display:flex; flex-direction:column; gap:10px;}
+        .nav-item { padding: 15px 20px; border-radius: 15px; color: #94A3B8; cursor: pointer; transition: 0.2s; font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 15px;}
+        .nav-item:hover, .nav-item.active { background: rgba(14, 165, 233, 0.15); color: var(--primary); }
+        
+        .main-content { flex: 1; padding: 40px; overflow-y: auto;}
+
+        /* Popups */
         .toast-container { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 12px; }
-        .toast { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 18px 30px; border-radius: 50px; font-weight: 600; box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; animation: slideDown 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 18px 30px; border-radius: 50px; font-weight: 600; box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; animation: slideDown 0.5s forwards; }
         .toast.success { border-left: 5px solid var(--success); } .toast.error { border-left: 5px solid var(--danger); }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideUpFade { to { opacity: 0; transform: translateY(-40px); } }
-
+        
         .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); z-index: 10001; display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.4s; pointer-events: none;}
         .confirm-overlay.show { opacity: 1; pointer-events: auto;}
-        .confirm-box { background: rgba(20, 27, 45, 0.95); padding: 40px; border-radius: 36px; width: 90%; max-width: 450px; text-align: center; border: 1px solid rgba(255,255,255,0.15); transform: scale(0.8); transition: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);}
+        .confirm-box { background: rgba(20, 27, 45, 0.95); padding: 40px; border-radius: 36px; width: 90%; max-width: 450px; text-align: center; border: 1px solid rgba(255,255,255,0.15); transform: scale(0.8); transition: 0.4s;}
         .confirm-overlay.show .confirm-box { transform: scale(1); }
 
-        #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .login-box { padding: 50px; width: 100%; max-width: 450px; text-align: center; }
-        .login-box input { width: 100%; padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; margin-bottom: 20px; font-size: 1.2rem; }
+        #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .login-box input, .login-box select { width: 100%; padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; margin-bottom: 20px; font-size: 1.1rem; }
 
-        #dashboard { display: none; max-width: 1400px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; margin-bottom: 30px;}
         
         .stat-boxes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 30px; }
         .stat-box { padding: 30px; }
-        .stat-box h3 { color: #94A3B8; margin: 0 0 10px 0; font-size: 1.2rem; }
-        .stat-box span { font-size: 3rem; font-weight: bold; color: var(--primary); }
-
-        .progress-bar { width: 100%; height: 15px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 20px; overflow: hidden; display: flex; }
+        .stat-box h3 { color: #94A3B8; margin: 0 0 10px 0; font-size: 1.1rem; }
+        .stat-box span { font-size: 2.5rem; font-weight: bold; color: var(--primary); }
+        .progress-bar { width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 15px; display: flex; }
         .bar-active { background: var(--success); height: 100%; transition: 0.5s; }
-        .bar-suspend { background: var(--danger); height: 100%; transition: 0.5s; }
 
         .controls { padding: 30px; margin-bottom: 30px; display: flex; gap: 20px; align-items: flex-end;}
-        .controls input { padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; width: 400px; font-size:1.1rem;}
+        .controls input { padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; width: 300px; font-size:1.1rem;}
         
-        table { width: 100%; border-collapse: collapse; overflow: hidden;}
+        table { width: 100%; border-collapse: collapse;}
         th, td { padding: 25px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
-        th { background: rgba(14, 165, 233, 0.1); color: var(--primary); font-size: 1.2rem;}
+        th { background: rgba(14, 165, 233, 0.1); color: var(--primary); font-size: 1.1rem;}
         
-        .btn { padding: 16px 28px; border-radius: 16px; border: none; cursor: pointer; color:white; font-weight:bold; transition: 0.3s; font-size:1.1rem; box-shadow: 0 10px 20px rgba(0,0,0,0.2);}
-        .btn:active { transform: scale(0.95); box-shadow: none;}
-        .status-badge { padding: 10px 18px; border-radius: 30px; font-size: 1rem; font-weight: bold; }
-        .bg-active { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
-        .bg-suspend { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+        .btn { padding: 16px 28px; border-radius: 16px; border: none; cursor: pointer; color:white; font-weight:bold; transition: 0.2s; font-size:1.1rem;}
+        .btn:active { transform: scale(0.95); }
+        .status-badge { padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.1);}
         
+        /* Modal แก้ไข/Audit */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(15px);}
-        .modal { padding: 40px; width: 500px; }
-        .modal input, .modal select { width: 100%; padding: 18px; margin-bottom: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 16px; font-size: 1.1rem;}
+        .modal { padding: 40px; width: 500px; max-height:80vh; overflow-y:auto;}
+        .modal input, .modal select { width: 100%; padding: 18px; margin-bottom: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 16px;}
     </style>
 </head>
 <body>
 
     <div id="toast-container" class="toast-container"></div>
-    <div class="confirm-overlay" id="confirm-overlay"><div class="confirm-box"><i class="fa-solid fa-circle-question" style="font-size: 80px; color: var(--primary); margin-bottom: 25px;"></i><h2 id="confirm-msg" style="margin-bottom: 35px; color: white; font-size:1.6rem; line-height:1.5;"></h2><div style="display:flex; gap:15px;"><button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="window.cancelCallback()">ยกเลิก</button><button class="btn" style="background:linear-gradient(135deg, #EF4444, #B91C1C); flex:1;" onclick="window.confirmCallback()">ตกลง</button></div></div></div>
+    <div class="confirm-overlay" id="confirm-overlay"><div class="confirm-box"><i class="fa-solid fa-circle-question" style="font-size: 80px; color: var(--primary); margin-bottom: 25px;"></i><h2 id="confirm-msg" style="margin-bottom: 35px; color: white;"></h2><div style="display:flex; gap:15px;"><button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="window.cancelCallback()">ยกเลิก</button><button class="btn" style="background:linear-gradient(135deg, #EF4444, #B91C1C); flex:1;" onclick="window.confirmCallback()">ตกลง</button></div></div></div>
 
     <div id="login-screen">
         <div class="login-box glass">
             <i class="fa-solid fa-fingerprint" style="font-size: 90px; color: var(--primary); margin-bottom: 25px;"></i>
-            <h2 style="margin-bottom: 35px; font-size:2.5rem;">Super Admin</h2>
-            <input type="password" id="admin-pass" placeholder="กรอกรหัสผ่านเพื่อเข้าถึง">
-            <button class="btn" style="background: var(--primary-grad); width:100%; font-size:1.3rem;" onclick="adminLogin()">ยืนยันตัวตน</button>
+            <h2 style="margin-bottom: 30px; font-size:2.5rem;">SaaS Enterprise</h2>
+            <select id="admin-role">
+                <option value="super">Super Admin (ดูและลบได้ทั้งหมด)</option>
+                <option value="staff">Staff / Support (ดูและแก้ไขได้อย่างเดียว)</option>
+            </select>
+            <input type="password" id="admin-pass" placeholder="รหัสผ่าน (Super=admin123, Staff=staff123)">
+            <button class="btn" style="background: var(--primary-grad); width:100%;" onclick="adminLogin()">ยืนยันตัวตน</button>
         </div>
     </div>
 
-    <div id="dashboard">
-        <div class="header">
-            <div>
-                <h1 style="margin:0; color:var(--primary); font-size:3rem;"><i class="fa-solid fa-server"></i> SaaS Dashboard</h1>
-                <p style="color:#94A3B8; margin-top:5px; font-size:1.3rem;">ศูนย์ควบคุมระบบส่วนกลาง (OriginOS Edition)</p>
-            </div>
-            <div style="display:flex; gap:15px;">
-                <button class="btn" style="background: linear-gradient(135deg, #EF4444, #B91C1C);" onclick="batchSuspend()"><i class="fa-solid fa-ban"></i> ระงับบัญชีที่หมดอายุ</button>
-                <button class="btn" style="background: linear-gradient(135deg, #10B981, #059669);" onclick="downloadCSV()"><i class="fa-solid fa-file-csv"></i> Export Data</button>
-            </div>
-        </div>
+    <div class="sidebar" id="sidebar" style="display:none;">
+        <h2 style="color:var(--primary); margin-bottom:30px; text-align:center;"><i class="fa-solid fa-cloud"></i> FamilyCare SaaS</h2>
+        <div class="nav-item active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> ภาพรวมระบบ</div>
+        <div class="nav-item" onclick="switchTab('audit')"><i class="fa-solid fa-shield-halved"></i> Audit Logs (ประวัติ)</div>
+        <div class="nav-item" style="margin-top:auto; color:var(--danger);" onclick="location.reload()"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</div>
+    </div>
 
-        <div class="stat-boxes">
-            <div class="stat-box glass"><h3><i class="fa-solid fa-users"></i> ผู้ใช้งานทั้งหมด</h3><span id="stat-total">0</span>
-                <div class="progress-bar"><div id="bar-active" class="bar-active"></div><div id="bar-suspend" class="bar-suspend"></div></div>
-            </div>
-            <div class="stat-box glass"><h3><i class="fa-solid fa-check-circle"></i> สถานะ Active</h3><span id="stat-active" style="color:var(--success);">0</span></div>
-            <div class="stat-box glass"><h3><i class="fa-solid fa-ban"></i> ถูกระงับการใช้งาน</h3><span id="stat-suspend" style="color:var(--danger);">0</span></div>
-            <div class="stat-box glass"><h3><i class="fa-solid fa-chart-line"></i> MRR (รายรับ/เดือน)</h3><span style="color:#F59E0B;">฿ <span id="stat-money">0</span></span></div>
-        </div>
-
-        <div class="controls glass">
-            <div>
-                <label style="color:#94A3B8; font-weight:bold; display:block; margin-bottom:10px;"><i class="fa-solid fa-bullhorn"></i> ส่งประกาศสวรรค์ (Broadcast)</label>
-                <input type="text" id="broadcast-msg" placeholder="พิมพ์ข้อความที่ต้องการส่งให้ทุกเครื่อง...">
-            </div>
-            <button class="btn" style="background: linear-gradient(135deg, #F59E0B, #D97706); height: 60px;" onclick="sendBroadcast()"><i class="fa-solid fa-paper-plane"></i> ส่งประกาศ</button>
-            <button class="btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); margin-left:auto; height: 60px;" onclick="loadAllUsers()"><i class="fa-solid fa-rotate"></i> รีเฟรชข้อมูล</button>
-        </div>
+    <div class="main-content" id="main-dashboard" style="display:none;">
         
-        <div class="glass" style="overflow-x:auto;">
-            <table id="user-table">
-                <thead>
-                    <tr><th>System ID</th><th>ชื่อลูกค้า</th><th>เบอร์โทรศัพท์</th><th>แพ็กเกจ</th><th>วันหมดอายุ</th><th>สถานะ</th><th>จัดการบัญชี</th></tr>
-                </thead>
-                <tbody id="user-body">
-                    <tr><td colspan="7" style="text-align:center; padding: 40px; font-size:1.2rem;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</td></tr>
-                </tbody>
-            </table>
+        <div id="tab-dashboard">
+            <div class="header">
+                <div>
+                    <h1 style="margin:0; font-size:2.5rem;">การจัดการผู้ใช้งาน <span id="role-badge" style="font-size:1rem; background:rgba(14,165,233,0.2); padding:5px 15px; border-radius:20px; color:var(--primary);"></span></h1>
+                </div>
+                <div style="display:flex; gap:15px;">
+                    <button class="btn super-only" style="background: linear-gradient(135deg, #EF4444, #B91C1C);" onclick="batchSuspend()"><i class="fa-solid fa-ban"></i> ระงับบัญชีหมดอายุ</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #10B981, #059669);" onclick="downloadCSV()"><i class="fa-solid fa-file-csv"></i> Export Backup</button>
+                </div>
+            </div>
+
+            <div class="stat-boxes">
+                <div class="stat-box glass"><h3><i class="fa-solid fa-users"></i> ผู้ใช้งานทั้งหมด</h3><span id="stat-total">0</span>
+                    <div class="progress-bar"><div id="bar-active" class="bar-active"></div></div>
+                </div>
+                <div class="stat-box glass"><h3><i class="fa-solid fa-check-circle"></i> สถานะ Active</h3><span id="stat-active" style="color:var(--success);">0</span></div>
+                <div class="stat-box glass"><h3><i class="fa-solid fa-server"></i> System Health</h3><span style="color:#10B981;">99.9%</span></div>
+                <div class="stat-box glass"><h3><i class="fa-solid fa-chart-line"></i> MRR (รายรับ/เดือน)</h3><span style="color:#F59E0B;">฿ <span id="stat-money">0</span></span></div>
+            </div>
+
+            <div class="controls glass">
+                <div>
+                    <label style="color:#94A3B8; font-weight:bold; margin-bottom:8px;"><i class="fa-solid fa-magnifying-glass"></i> ค้นหาข้อมูล (Search)</label>
+                    <input type="text" id="search-box" placeholder="ค้นหาด้วย ID หรือ ชื่อ..." onkeyup="filterTable()">
+                </div>
+                <div>
+                    <label style="color:#94A3B8; font-weight:bold; margin-bottom:8px;"><i class="fa-solid fa-bullhorn"></i> ส่งประกาศ (Broadcast)</label>
+                    <input type="text" id="broadcast-msg" placeholder="ข้อความถึงทุกคน...">
+                </div>
+                <button class="btn super-only" style="background: #F59E0B; height: 57px;" onclick="sendBroadcast()"><i class="fa-solid fa-paper-plane"></i></button>
+                <button class="btn" style="background: rgba(255,255,255,0.1); margin-left:auto; height: 57px;" onclick="loadAllUsers()"><i class="fa-solid fa-rotate"></i> โหลดข้อมูล</button>
+            </div>
+            
+            <div class="glass" style="overflow-x:auto;">
+                <table id="user-table">
+                    <thead>
+                        <tr><th>System ID</th><th>ชื่อลูกค้า</th><th>เบอร์โทร</th><th>วันหมดอายุ</th><th>สถานะ</th><th>จัดการ</th></tr>
+                    </thead>
+                    <tbody id="user-body">
+                        <tr><td colspan="6" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> โหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-audit" style="display:none;">
+            <h1 style="margin-bottom:30px;"><i class="fa-solid fa-shield-halved" style="color:var(--primary);"></i> Security & Audit Logs</h1>
+            <div class="glass" style="padding: 30px;">
+                <table style="width:100%;">
+                    <thead><tr><th>เวลา (Time)</th><th>ผู้ดำเนินการ (Role)</th><th>รายละเอียด (Action)</th></tr></thead>
+                    <tbody id="audit-body">
+                        </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="edit-modal">
         <div class="modal glass">
-            <h2 style="color:var(--primary); margin-bottom:25px; font-size:2rem;">จัดการ: <span id="edit-id" style="color:white;"></span></h2>
-            <label style="color:#94A3B8; text-align:left; display:block; margin-bottom:10px;">วันหมดอายุ (YYYY-MM-DD)</label>
+            <h2 style="color:var(--primary); margin-bottom:25px;"><i class="fa-solid fa-user-pen"></i> แก้ไข: <span id="edit-id" style="color:white;"></span></h2>
+            
+            <label style="color:#94A3B8; display:block; margin-bottom:10px;">คำเรียก และ ชื่อ</label>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="edit-title" style="width:30%;" placeholder="คำเรียก">
+                <input type="text" id="edit-name" style="flex:1;" placeholder="ชื่อ">
+            </div>
+            
+            <label style="color:#94A3B8; display:block; margin-bottom:10px;">เบอร์โทรศัพท์</label>
+            <input type="text" id="edit-phone" placeholder="เบอร์โทร">
+
+            <label style="color:#94A3B8; display:block; margin-bottom:10px;">วันหมดอายุ (Subscription)</label>
             <input type="date" id="edit-expiry">
-            <label style="color:#94A3B8; text-align:left; display:block; margin-bottom:10px;">สถานะบัญชี</label>
+            
+            <label style="color:#94A3B8; display:block; margin-bottom:10px;">สถานะบัญชี</label>
             <select id="edit-status">
                 <option value="Active">ใช้งานปกติ (Active)</option>
-                <option value="Suspended">ระงับการใช้งาน (Suspended)</option>
+                <option value="Suspended">ระงับชั่วคราว (Suspended)</option>
             </select>
+
             <div style="display:flex; gap:15px; margin-top:20px;">
-                <button class="btn" style="background:var(--success); flex:1;" onclick="saveSubscription()">บันทึกข้อมูล</button>
+                <button class="btn" style="background:var(--success); flex:1;" onclick="saveSubscription()">บันทึก</button>
                 <button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="document.getElementById('edit-modal').style.display='none'">ยกเลิก</button>
             </div>
             
-            <hr style="border:1px solid rgba(255,255,255,0.1); margin:25px 0;">
-            <button class="btn" style="background:linear-gradient(135deg, #EF4444, #B91C1C); width:100%; font-size:1.2rem;" onclick="killSwitch()"><i class="fa-solid fa-bomb"></i> บังคับล้างเครื่อง (Kill Switch)</button>
+            <hr class="super-only" style="border:1px solid rgba(255,255,255,0.1); margin:25px 0;">
+            <button class="btn super-only" style="background:linear-gradient(135deg, #EF4444, #B91C1C); width:100%;" onclick="killSwitch()"><i class="fa-solid fa-bomb"></i> บังคับลบข้อมูล (Delete)</button>
         </div>
     </div>
 
@@ -137,84 +179,129 @@
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzph3otQ0ERZxWxwb8t-GrJbDeuzz9K4zMUCl4DpacNNItpZXX5OgoRKKwqfymLLn6fAw/exec";
         const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
         let globalData = [];
+        let currentRole = ""; 
 
-        function showToast(msg, type='info') { let box = document.getElementById('toast-container'); let el = document.createElement('div'); el.className = `toast ${type}`; let icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-circle-exclamation' : 'fa-bell'; el.innerHTML = `<i class="fa-solid ${icon}" style="font-size:1.5rem;"></i> <span style="font-size:1.1rem;">${msg}</span>`; box.appendChild(el); setTimeout(() => { el.style.animation = 'slideUpFade 0.4s forwards'; setTimeout(()=>el.remove(),400); }, 3500); }
+        function showToast(msg, type='info') { let box = document.getElementById('toast-container'); let el = document.createElement('div'); el.className = `toast ${type}`; el.innerHTML = `<i class="fa-solid ${type==='success'?'fa-check-circle':'fa-bell'}" style="font-size:1.5rem;"></i> <span>${msg}</span>`; box.appendChild(el); setTimeout(() => { el.style.animation = 'slideUpFade 0.4s forwards'; setTimeout(()=>el.remove(),400); }, 3500); }
         function customConfirm(msg, callback) { document.getElementById('confirm-msg').innerText = msg; const overlay = document.getElementById('confirm-overlay'); overlay.classList.add('show'); window.confirmCallback = () => { overlay.classList.remove('show'); callback(); }; window.cancelCallback = () => { overlay.classList.remove('show'); }; }
+        function saveToCloud(payload) { const formData = new URLSearchParams(); formData.append('data', JSON.stringify(payload)); return fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: formData }); }
 
-        // 🔴 ใช้ URLSearchParams + no-cors ทะลวงกำแพง Google
-        function saveToCloud(payload) {
-            const formData = new URLSearchParams();
-            formData.append('data', JSON.stringify(payload));
-            return fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: formData }).catch(e => console.log(e));
+        function logAction(action) {
+            let logs = JSON.parse(localStorage.getItem('adminAuditLogs') || '[]');
+            logs.unshift({ time: new Date().toLocaleString(), role: currentRole, action: action });
+            if(logs.length > 50) logs.pop();
+            localStorage.setItem('adminAuditLogs', JSON.stringify(logs));
         }
 
+        // 🔴 ระบบสิทธิ์ (RBAC)
         function adminLogin() {
-            const pass = document.getElementById('admin-pass').value;
-            if(pass === "admin123") { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; showToast("เข้าสู่ระบบแอดมิน", "success"); loadAllUsers(); } 
-            else { showToast("รหัสผ่านไม่ถูกต้อง", "error"); }
+            const role = document.getElementById('admin-role').value; const pass = document.getElementById('admin-pass').value;
+            if((role === "super" && pass === "admin123") || (role === "staff" && pass === "staff123")) { 
+                currentRole = role;
+                document.getElementById('login-screen').style.display = 'none'; 
+                document.getElementById('sidebar').style.display = 'flex';
+                document.getElementById('main-dashboard').style.display = 'block'; 
+                document.getElementById('role-badge').innerText = role === 'super' ? "Super Admin" : "Staff Level";
+                
+                // ซ่อนปุ่มถ้าเป็น Staff
+                if(role === 'staff') { document.querySelectorAll('.super-only').forEach(el => el.style.display = 'none'); }
+                
+                logAction("เข้าสู่ระบบสำเร็จ"); showToast("เข้าสู่ระบบสำเร็จ", "success"); loadAllUsers(); 
+            } else { showToast("รหัสผ่านไม่ถูกต้อง", "error"); }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById('tab-dashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
+            document.getElementById('tab-audit').style.display = tab === 'audit' ? 'block' : 'none';
+            if(tab === 'audit') loadAuditLogs();
+        }
+
+        function loadAuditLogs() {
+            let logs = JSON.parse(localStorage.getItem('adminAuditLogs') || '[]');
+            const body = document.getElementById('audit-body');
+            if(logs.length === 0) { body.innerHTML = '<tr><td colspan="3" style="text-align:center;">ไม่มีประวัติ</td></tr>'; return; }
+            body.innerHTML = logs.map(l => `<tr><td style="color:var(--sub);">${l.time}</td><td><span class="status-badge" style="background:rgba(255,255,255,0.1);">${l.role.toUpperCase()}</span></td><td>${l.action}</td></tr>`).join('');
         }
 
         async function loadAllUsers() {
-            const body = document.getElementById('user-body'); body.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
+            const body = document.getElementById('user-body'); body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
             try {
                 const res = await fetch(GAS_URL + "?action=readAll", { redirect: "follow" });
-                const text = await res.text(); const data = JSON.parse(text); globalData = data;
+                const data = await JSON.parse(await res.text()); globalData = data;
                 body.innerHTML = ""; let activeCount = 0, suspendCount = 0, totalCount = 0;
-                if(data.length <= 1) { body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#94A3B8;">ยังไม่มีผู้ใช้งาน</td></tr>'; return; }
+                
+                if(data.length <= 1) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;">ยังไม่มีผู้ใช้งาน</td></tr>'; return; }
                 
                 for (let i = 1; i < data.length; i++) {
                     if(!data[i][0]) continue; totalCount++;
-                    let status = data[i][12] || "Active"; let expiry = data[i][11] ? data[i][11].split('T')[0] : "ไม่ระบุ"; 
+                    let status = data[i][12] || "Active"; let expiry = data[i][11] ? data[i][11].split('T')[0] : ""; 
                     if(status === "Active") activeCount++; else suspendCount++;
-                    let badgeClass = status === "Active" ? "bg-active" : "bg-suspend";
-                    let tier = (i%3===0) ? '<span style="color:#F59E0B; font-weight:bold;"><i class="fa-solid fa-star"></i> VIP</span>' : '<span style="color:#94A3B8;">Basic</span>';
-
+                    
                     body.innerHTML += `
-                        <tr>
-                            <td style="font-weight:bold; color:var(--primary); font-size:1.1rem;">${data[i][0]}</td>
-                            <td style="font-size:1.1rem;">${data[i][1] || ''} ${data[i][2] || '-'}</td>
-                            <td style="font-size:1.1rem;">${data[i][7] || '-'}</td>
-                            <td>${tier}</td>
-                            <td style="font-family: monospace; font-size:1.2rem; color: ${status === 'Active' ? 'white' : 'var(--danger)'};">${expiry}</td>
-                            <td><span class="status-badge ${badgeClass}">${status}</span></td>
+                        <tr class="user-row">
+                            <td class="uid" style="font-weight:bold; color:var(--primary);">${data[i][0]}</td>
+                            <td class="uname">${data[i][1] || ''} ${data[i][2] || '-'}</td>
+                            <td>${data[i][7] || '-'}</td>
+                            <td style="color: ${status === 'Active' ? 'white' : 'var(--danger)'};">${expiry}</td>
+                            <td><span class="status-badge ${status === 'Active' ? 'bg-active' : 'bg-suspend'}">${status}</span></td>
                             <td>
-                                <button class="btn" style="background:rgba(14, 165, 233, 0.2); color:var(--primary); border:1px solid var(--primary); margin-right:10px;" onclick="openEdit('${data[i][0]}', '${expiry}', '${status}')"><i class="fa-solid fa-pen"></i> จัดการ</button>
+                                <button class="btn" style="background:rgba(14, 165, 233, 0.2); color:var(--primary);" onclick="openEdit('${data[i][0]}', '${data[i][1]}', '${data[i][2]}', '${data[i][7]}', '${expiry}', '${status}')"><i class="fa-solid fa-pen"></i> แก้ไข</button>
                             </td>
                         </tr>`;
                 }
-                document.getElementById('stat-total').innerText = totalCount; document.getElementById('stat-active').innerText = activeCount; document.getElementById('stat-suspend').innerText = suspendCount; document.getElementById('stat-money').innerText = (activeCount * 299).toLocaleString(); 
-                document.getElementById('bar-active').style.width = `${(activeCount/totalCount)*100}%`; document.getElementById('bar-suspend').style.width = `${(suspendCount/totalCount)*100}%`;
-            } catch(e) { body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--warning);">ดึงข้อมูลไม่สำเร็จ โปรดเช็ค Apps Script</td></tr>'; }
+                document.getElementById('stat-total').innerText = totalCount; document.getElementById('stat-active').innerText = activeCount; document.getElementById('stat-money').innerText = (activeCount * 299).toLocaleString(); 
+                document.getElementById('bar-active').style.width = `${(activeCount/totalCount)*100}%`;
+            } catch(e) { body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--warning);">เชื่อมต่อขัดข้อง</td></tr>'; }
+        }
+
+        // 🔴 ระบบค้นหา (Search Filter)
+        function filterTable() {
+            let input = document.getElementById("search-box").value.toUpperCase();
+            let rows = document.querySelectorAll(".user-row");
+            rows.forEach(row => {
+                let id = row.querySelector(".uid").innerText.toUpperCase();
+                let name = row.querySelector(".uname").innerText.toUpperCase();
+                row.style.display = (id.includes(input) || name.includes(input)) ? "" : "none";
+            });
         }
 
         function batchSuspend() {
-            customConfirm("ระงับบัญชีที่หมดอายุทั้งหมดอัตโนมัติ?", () => {
-                showToast("กำลังประมวลผล...", "info");
-                saveToCloud({action: "batchSuspend"});
-                setTimeout(() => { showToast("ระงับบัญชีเรียบร้อย", "success"); loadAllUsers(); }, 2000);
+            customConfirm("ระงับบัญชีที่หมดอายุอัตโนมัติ?", () => {
+                showToast("กำลังประมวลผล...", "info"); logAction("สั่งรัน Batch Suspend (Auto-ban)");
+                saveToCloud({action: "batchSuspend"}); setTimeout(() => { showToast("รันสคริปต์เสร็จสิ้น", "success"); loadAllUsers(); }, 2000);
             });
         }
 
         function killSwitch() {
             const id = document.getElementById('edit-id').innerText;
-            customConfirm(`คำเตือน: คุณต้องการ 'ล้างเครื่อง' ${id} ใช่หรือไม่? ข้อมูลฝั่งนั้นจะพังทันที!`, () => {
+            customConfirm(`ลบ ${id} ถาวร?`, () => {
                 client.publish(`familycare/${id}/command/kill_switch`, "true", {qos:1});
                 saveToCloud({action: "delete", system_id: id});
-                document.getElementById('edit-modal').style.display = 'none'; showToast(`ส่งคำสั่งทำลายล้าง ${id} แล้ว`, "error"); setTimeout(loadAllUsers, 2000);
+                logAction(`บังคับลบข้อมูลและรีเซ็ตเครื่อง: ${id}`);
+                document.getElementById('edit-modal').style.display = 'none'; showToast(`ส่งคำสั่งลบ ${id}`, "success"); setTimeout(loadAllUsers, 1500);
             });
         }
 
-        function sendBroadcast() { const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg); showToast("ส่งประกาศสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
-        function openEdit(id, expiry, status) { document.getElementById('edit-id').innerText = id; document.getElementById('edit-expiry').value = expiry !== "ไม่ระบุ" ? expiry : ""; document.getElementById('edit-status').value = status; document.getElementById('edit-modal').style.display = 'flex'; }
+        function sendBroadcast() { const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg); logAction(`ส่งประกาศ: ${msg}`); showToast("ส่งประกาศสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
         
-        function saveSubscription() {
-            const id = document.getElementById('edit-id').innerText; const expiry = document.getElementById('edit-expiry').value; const status = document.getElementById('edit-status').value;
-            saveToCloud({action: "updateSubscription", system_id: id, expiry: expiry, status: status});
-            client.publish(`familycare/${id}/command/status_update`, status);
-            document.getElementById('edit-modal').style.display = 'none'; showToast("บันทึกข้อมูลเรียบร้อย", "success"); setTimeout(loadAllUsers, 1000);
+        function openEdit(id, title, name, phone, expiry, status) { 
+            document.getElementById('edit-id').innerText = id; document.getElementById('edit-title').value = title; document.getElementById('edit-name').value = name; document.getElementById('edit-phone').value = phone; document.getElementById('edit-expiry').value = expiry; document.getElementById('edit-status').value = status; document.getElementById('edit-modal').style.display = 'flex'; 
         }
         
-        function downloadCSV() { if(globalData.length <= 1) return showToast("ไม่มีข้อมูล", "error"); let csv = "data:text/csv;charset=utf-8,\uFEFF"; globalData.forEach(row => { csv += row.join(",") + "\r\n"; }); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "Customer_Data.csv"); document.body.appendChild(link); link.click(); }
+        function saveSubscription() {
+            const id = document.getElementById('edit-id').innerText; const status = document.getElementById('edit-status').value;
+            const title = document.getElementById('edit-title').value; const name = document.getElementById('edit-name').value; const phone = document.getElementById('edit-phone').value;
+            // เซฟข้อมูลทั่วไป
+            saveToCloud({action: "editUser", system_id: id, title: title, name: name, phone: phone});
+            // เซฟ Subscription
+            saveToCloud({action: "updateSubscription", system_id: id, expiry: document.getElementById('edit-expiry').value, status: status});
+            
+            client.publish(`familycare/${id}/command/status_update`, status); logAction(`แก้ไขข้อมูลบัญชี: ${id}`);
+            document.getElementById('edit-modal').style.display = 'none'; showToast("บันทึกข้อมูลเรียบร้อย", "success"); setTimeout(loadAllUsers, 1500);
+        }
+        
+        function downloadCSV() { if(globalData.length <= 1) return; let csv = "data:text/csv;charset=utf-8,\uFEFF"; globalData.forEach(row => { csv += row.join(",") + "\r\n"; }); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "CustomerData_Backup.csv"); document.body.appendChild(link); link.click(); logAction("Export CSV Backup");}
     </script>
 </body>
 </html>
