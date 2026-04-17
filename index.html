@@ -8,18 +8,16 @@
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
         :root { --bg: #040914; --card: rgba(20, 27, 45, 0.8); --primary: #0EA5E9; --primary-grad: linear-gradient(135deg, #0EA5E9, #3B82F6); --success: #10B981; --danger: #EF4444; }
-        * { outline: none; box-sizing: border-box;}
+        * { outline: none; box-sizing: border-box; -webkit-tap-highlight-color: transparent;}
         body { background: var(--bg); color: white; font-family: 'Prompt', sans-serif; padding: 0; margin: 0; display:flex; height: 100vh;}
         .glass { background: var(--card); backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); }
 
-        /* 🔴 Sidebar Layout */
         .sidebar { width: 280px; background: rgba(15, 23, 42, 0.95); border-right: 1px solid rgba(255,255,255,0.05); padding: 30px 20px; display:flex; flex-direction:column; gap:10px;}
         .nav-item { padding: 15px 20px; border-radius: 15px; color: #94A3B8; cursor: pointer; transition: 0.2s; font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 15px;}
         .nav-item:hover, .nav-item.active { background: rgba(14, 165, 233, 0.15); color: var(--primary); }
         
         .main-content { flex: 1; padding: 40px; overflow-y: auto;}
 
-        /* Popups */
         .toast-container { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 12px; }
         .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 18px 30px; border-radius: 50px; font-weight: 600; box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; animation: slideDown 0.5s forwards; }
         .toast.success { border-left: 5px solid var(--success); } .toast.error { border-left: 5px solid var(--danger); }
@@ -72,7 +70,7 @@
                 <option value="super">Super Admin (ดูและลบได้ทั้งหมด)</option>
                 <option value="staff">Staff / Support (ดูและแก้ไขได้อย่างเดียว)</option>
             </select>
-            <input type="password" id="admin-pass" placeholder="รหัสผ่าน (Super=admin123, Staff=staff123)">
+            <input type="password" id="admin-pass" placeholder="รหัสผ่าน (Super=superadmin999)">
             <button class="btn" style="background: var(--primary-grad); width:100%;" onclick="adminLogin()">ยืนยันตัวตน</button>
         </div>
     </div>
@@ -181,8 +179,9 @@
         let globalData = [];
         let currentRole = ""; 
 
+        function vibrate() { if(navigator.vibrate) navigator.vibrate(50); }
         function showToast(msg, type='info') { let box = document.getElementById('toast-container'); let el = document.createElement('div'); el.className = `toast ${type}`; el.innerHTML = `<i class="fa-solid ${type==='success'?'fa-check-circle':'fa-bell'}" style="font-size:1.5rem;"></i> <span>${msg}</span>`; box.appendChild(el); setTimeout(() => { el.style.animation = 'slideUpFade 0.4s forwards'; setTimeout(()=>el.remove(),400); }, 3500); }
-        function customConfirm(msg, callback) { document.getElementById('confirm-msg').innerText = msg; const overlay = document.getElementById('confirm-overlay'); overlay.classList.add('show'); window.confirmCallback = () => { overlay.classList.remove('show'); callback(); }; window.cancelCallback = () => { overlay.classList.remove('show'); }; }
+        function customConfirm(msg, callback) { vibrate(); document.getElementById('confirm-msg').innerText = msg; const overlay = document.getElementById('confirm-overlay'); overlay.classList.add('show'); window.confirmCallback = () => { vibrate(); overlay.classList.remove('show'); callback(); }; window.cancelCallback = () => { vibrate(); overlay.classList.remove('show'); }; }
         function saveToCloud(payload) { const formData = new URLSearchParams(); formData.append('data', JSON.stringify(payload)); return fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: formData }); }
 
         function logAction(action) {
@@ -192,25 +191,29 @@
             localStorage.setItem('adminAuditLogs', JSON.stringify(logs));
         }
 
-        // 🔴 ระบบสิทธิ์ (RBAC)
-        function adminLogin() {
-            const role = document.getElementById('admin-role').value; const pass = document.getElementById('admin-pass').value;
-            if((role === "super" && pass === "admin123") || (role === "staff" && pass === "staff123")) { 
-                currentRole = role;
-                document.getElementById('login-screen').style.display = 'none'; 
-                document.getElementById('sidebar').style.display = 'flex';
-                document.getElementById('main-dashboard').style.display = 'block'; 
-                document.getElementById('role-badge').innerText = role === 'super' ? "Super Admin" : "Staff Level";
-                
-                // ซ่อนปุ่มถ้าเป็น Staff
-                if(role === 'staff') { document.querySelectorAll('.super-only').forEach(el => el.style.display = 'none'); }
-                
-                logAction("เข้าสู่ระบบสำเร็จ"); showToast("เข้าสู่ระบบสำเร็จ", "success"); loadAllUsers(); 
-            } else { showToast("รหัสผ่านไม่ถูกต้อง", "error"); }
+        // 🔴 ระบบสิทธิ์ (RBAC) เข้าสู่ระบบ Backend
+        async function adminLogin() {
+            vibrate(); const role = document.getElementById('admin-role').value; const pass = document.getElementById('admin-pass').value;
+            showToast('กำลังตรวจสอบ...', 'info');
+            try {
+                const res = await fetch(`${GAS_URL}?action=adminLogin&role=${role}&pass=${pass}`); const data = await res.json();
+                if(data.status === 'success') {
+                    currentRole = role;
+                    document.getElementById('login-screen').style.display = 'none'; 
+                    document.getElementById('sidebar').style.display = 'flex';
+                    document.getElementById('main-dashboard').style.display = 'block'; 
+                    document.getElementById('role-badge').innerText = role === 'super' ? "Super Admin" : "Staff Level";
+                    
+                    // ซ่อนปุ่มถ้าเป็น Staff
+                    if(role === 'staff') { document.querySelectorAll('.super-only').forEach(el => el.style.display = 'none'); }
+                    
+                    logAction("เข้าสู่ระบบสำเร็จ"); showToast("เข้าสู่ระบบสำเร็จ", "success"); loadAllUsers(); 
+                } else { showToast("รหัสผ่านไม่ถูกต้อง", "error"); }
+            } catch(e) { showToast('ระบบขัดข้อง', 'error'); }
         }
 
         function switchTab(tab) {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            vibrate(); document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             event.currentTarget.classList.add('active');
             document.getElementById('tab-dashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
             document.getElementById('tab-audit').style.display = tab === 'audit' ? 'block' : 'none';
@@ -279,29 +282,29 @@
                 client.publish(`familycare/${id}/command/kill_switch`, "true", {qos:1});
                 saveToCloud({action: "delete", system_id: id});
                 logAction(`บังคับลบข้อมูลและรีเซ็ตเครื่อง: ${id}`);
-                document.getElementById('edit-modal').style.display = 'none'; showToast(`ส่งคำสั่งลบ ${id}`, "success"); setTimeout(loadAllUsers, 1500);
+                document.getElementById('edit-modal').style.display = 'none'; showToast(`ส่งคำสั่งลบ ${id}`, "success"); 
+                setTimeout(loadAllUsers, 1500); // 🔴 หน่วงเวลารีเฟรชให้ Sheet ลบเสร็จก่อน
             });
         }
 
-        function sendBroadcast() { const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg); logAction(`ส่งประกาศ: ${msg}`); showToast("ส่งประกาศสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
+        function sendBroadcast() { vibrate(); const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg); logAction(`ส่งประกาศ: ${msg}`); showToast("ส่งประกาศสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
         
         function openEdit(id, title, name, phone, expiry, status) { 
-            document.getElementById('edit-id').innerText = id; document.getElementById('edit-title').value = title; document.getElementById('edit-name').value = name; document.getElementById('edit-phone').value = phone; document.getElementById('edit-expiry').value = expiry; document.getElementById('edit-status').value = status; document.getElementById('edit-modal').style.display = 'flex'; 
+            vibrate(); document.getElementById('edit-id').innerText = id; document.getElementById('edit-title').value = title; document.getElementById('edit-name').value = name; document.getElementById('edit-phone').value = phone; document.getElementById('edit-expiry').value = expiry; document.getElementById('edit-status').value = status; document.getElementById('edit-modal').style.display = 'flex'; 
         }
         
         function saveSubscription() {
-            const id = document.getElementById('edit-id').innerText; const status = document.getElementById('edit-status').value;
+            vibrate(); const id = document.getElementById('edit-id').innerText; const status = document.getElementById('edit-status').value;
             const title = document.getElementById('edit-title').value; const name = document.getElementById('edit-name').value; const phone = document.getElementById('edit-phone').value;
-            // เซฟข้อมูลทั่วไป
             saveToCloud({action: "editUser", system_id: id, title: title, name: name, phone: phone});
-            // เซฟ Subscription
             saveToCloud({action: "updateSubscription", system_id: id, expiry: document.getElementById('edit-expiry').value, status: status});
             
             client.publish(`familycare/${id}/command/status_update`, status); logAction(`แก้ไขข้อมูลบัญชี: ${id}`);
-            document.getElementById('edit-modal').style.display = 'none'; showToast("บันทึกข้อมูลเรียบร้อย", "success"); setTimeout(loadAllUsers, 1500);
+            document.getElementById('edit-modal').style.display = 'none'; showToast("บันทึกข้อมูลเรียบร้อย", "success"); 
+            setTimeout(loadAllUsers, 1500); // 🔴 หน่วงเวลารีเฟรชให้ Sheet อัปเดตเสร็จก่อน
         }
         
-        function downloadCSV() { if(globalData.length <= 1) return; let csv = "data:text/csv;charset=utf-8,\uFEFF"; globalData.forEach(row => { csv += row.join(",") + "\r\n"; }); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "CustomerData_Backup.csv"); document.body.appendChild(link); link.click(); logAction("Export CSV Backup");}
+        function downloadCSV() { vibrate(); if(globalData.length <= 1) return; let csv = "data:text/csv;charset=utf-8,\uFEFF"; globalData.forEach(row => { csv += row.join(",") + "\r\n"; }); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "CustomerData_Backup.csv"); document.body.appendChild(link); link.click(); logAction("Export CSV Backup");}
     </script>
 </body>
 </html>
