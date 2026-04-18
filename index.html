@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>SaaS Super Admin (Enterprise)</title>
+    <title>SaaS Super Admin (Enterprise V.9)</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
@@ -19,17 +19,18 @@
         .main-content { flex: 1; padding: 40px; overflow-y: auto;}
 
         .toast-container { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 12px; }
-        .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 18px 30px; border-radius: 50px; font-weight: 600; box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; animation: slideDown 0.5s forwards; }
+        .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 18px 30px; border-radius: 50px; font-weight: 600; box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; animation: slideDown 0.3s forwards; }
         .toast.success { border-left: 5px solid var(--success); } .toast.error { border-left: 5px solid var(--danger); }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: translateY(0); } }
         
-        .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); z-index: 10001; display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.4s; pointer-events: none;}
+        .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); z-index: 10001; display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.2s; pointer-events: none;}
         .confirm-overlay.show { opacity: 1; pointer-events: auto;}
-        .confirm-box { background: rgba(20, 27, 45, 0.95); padding: 40px; border-radius: 36px; width: 90%; max-width: 450px; text-align: center; border: 1px solid rgba(255,255,255,0.15); transform: scale(0.8); transition: 0.4s;}
+        .confirm-box { background: rgba(20, 27, 45, 0.95); padding: 40px; border-radius: 36px; width: 90%; max-width: 450px; text-align: center; border: 1px solid rgba(255,255,255,0.15); transform: scale(0.8); transition: 0.3s;}
         .confirm-overlay.show .confirm-box { transform: scale(1); }
 
         #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; justify-content: center; align-items: center; }
-        .login-box input, .login-box select { width: 100%; padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; margin-bottom: 20px; font-size: 1.1rem; }
+        .login-box input, .login-box select { width: 100%; padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; margin-bottom: 20px; font-size: 1.1rem; transition: 0.3s;}
+        .login-box input:focus { border-color: var(--primary); }
 
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; margin-bottom: 30px;}
         
@@ -41,8 +42,9 @@
         .bar-active { background: var(--success); height: 100%; transition: 0.5s; }
 
         .controls { padding: 30px; margin-bottom: 30px; display: flex; gap: 20px; align-items: flex-end;}
-        .controls input { padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; width: 300px; font-size:1.1rem;}
-        
+        .controls input { padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; width: 300px; font-size:1.1rem; transition: 0.3s;}
+        .controls input:focus { border-color: var(--primary); }
+
         table { width: 100%; border-collapse: collapse;}
         th, td { padding: 25px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
         th { background: rgba(14, 165, 233, 0.1); color: var(--primary); font-size: 1.1rem;}
@@ -51,7 +53,6 @@
         .btn:active { transform: scale(0.95); }
         .status-badge { padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.1);}
         
-        /* Modal แก้ไข/Audit */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(15px);}
         .modal { padding: 40px; width: 500px; max-height:80vh; overflow-y:auto;}
         .modal input, .modal select { width: 100%; padding: 18px; margin-bottom: 20px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 16px;}
@@ -68,9 +69,9 @@
             <h2 style="margin-bottom: 30px; font-size:2.5rem;">SaaS Enterprise</h2>
             <select id="admin-role">
                 <option value="super">Super Admin (ดูและลบได้ทั้งหมด)</option>
-                <option value="staff">Staff / Support (ดูและแก้ไขได้อย่างเดียว)</option>
+                <option value="staff">Staff / Support (แก้ไขได้อย่างเดียว)</option>
             </select>
-            <input type="password" id="admin-pass" placeholder="รหัสผ่าน (Super=superadmin999)">
+            <input type="password" id="admin-pass" placeholder="รหัสผ่านเข้าหลังบ้าน">
             <button class="btn" style="background: var(--primary-grad); width:100%;" onclick="adminLogin()">ยืนยันตัวตน</button>
         </div>
     </div>
@@ -78,7 +79,7 @@
     <div class="sidebar" id="sidebar" style="display:none;">
         <h2 style="color:var(--primary); margin-bottom:30px; text-align:center;"><i class="fa-solid fa-cloud"></i> FamilyCare SaaS</h2>
         <div class="nav-item active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> ภาพรวมระบบ</div>
-        <div class="nav-item" onclick="switchTab('audit')"><i class="fa-solid fa-shield-halved"></i> Audit Logs (ประวัติ)</div>
+        <div class="nav-item" onclick="switchTab('audit')"><i class="fa-solid fa-shield-halved"></i> Cloud Audit Logs</div>
         <div class="nav-item" style="margin-top:auto; color:var(--danger);" onclick="location.reload()"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</div>
     </div>
 
@@ -105,14 +106,8 @@
             </div>
 
             <div class="controls glass">
-                <div>
-                    <label style="color:#94A3B8; font-weight:bold; margin-bottom:8px;"><i class="fa-solid fa-magnifying-glass"></i> ค้นหาข้อมูล (Search)</label>
-                    <input type="text" id="search-box" placeholder="ค้นหาด้วย ID หรือ ชื่อ..." onkeyup="filterTable()">
-                </div>
-                <div>
-                    <label style="color:#94A3B8; font-weight:bold; margin-bottom:8px;"><i class="fa-solid fa-bullhorn"></i> ส่งประกาศ (Broadcast)</label>
-                    <input type="text" id="broadcast-msg" placeholder="ข้อความถึงทุกคน...">
-                </div>
+                <div><label style="color:#94A3B8; font-weight:bold; margin-bottom:8px;"><i class="fa-solid fa-magnifying-glass"></i> ค้นหาข้อมูล (Search)</label><input type="text" id="search-box" placeholder="ค้นหาด้วย ID หรือ ชื่อ..." onkeyup="filterTable()"></div>
+                <div><label style="color:#94A3B8; font-weight:bold; margin-bottom:8px;"><i class="fa-solid fa-bullhorn"></i> ส่งประกาศ (Broadcast)</label><input type="text" id="broadcast-msg" placeholder="ข้อความถึงทุกคน..."></div>
                 <button class="btn super-only" style="background: #F59E0B; height: 57px;" onclick="sendBroadcast()"><i class="fa-solid fa-paper-plane"></i></button>
                 <button class="btn" style="background: rgba(255,255,255,0.1); margin-left:auto; height: 57px;" onclick="loadAllUsers()"><i class="fa-solid fa-rotate"></i> โหลดข้อมูล</button>
             </div>
@@ -130,12 +125,11 @@
         </div>
 
         <div id="tab-audit" style="display:none;">
-            <h1 style="margin-bottom:30px;"><i class="fa-solid fa-shield-halved" style="color:var(--primary);"></i> Security & Audit Logs</h1>
+            <h1 style="margin-bottom:30px;"><i class="fa-solid fa-shield-halved" style="color:var(--primary);"></i> Cloud Audit Logs</h1>
             <div class="glass" style="padding: 30px;">
                 <table style="width:100%;">
                     <thead><tr><th>เวลา (Time)</th><th>ผู้ดำเนินการ (Role)</th><th>รายละเอียด (Action)</th></tr></thead>
-                    <tbody id="audit-body">
-                        </tbody>
+                    <tbody id="audit-body"><tr><td colspan="3" style="text-align:center;">กำลังโหลดประวัติ...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -165,7 +159,7 @@
 
             <div style="display:flex; gap:15px; margin-top:20px;">
                 <button class="btn" style="background:var(--success); flex:1;" onclick="saveSubscription()">บันทึก</button>
-                <button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="document.getElementById('edit-modal').style.display='none'">ยกเลิก</button>
+                <button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="vibrate(); document.getElementById('edit-modal').style.display='none'">ยกเลิก</button>
             </div>
             
             <hr class="super-only" style="border:1px solid rgba(255,255,255,0.1); margin:25px 0;">
@@ -184,31 +178,21 @@
         function customConfirm(msg, callback) { vibrate(); document.getElementById('confirm-msg').innerText = msg; const overlay = document.getElementById('confirm-overlay'); overlay.classList.add('show'); window.confirmCallback = () => { vibrate(); overlay.classList.remove('show'); callback(); }; window.cancelCallback = () => { vibrate(); overlay.classList.remove('show'); }; }
         function saveToCloud(payload) { const formData = new URLSearchParams(); formData.append('data', JSON.stringify(payload)); return fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: formData }); }
 
-        function logAction(action) {
-            let logs = JSON.parse(localStorage.getItem('adminAuditLogs') || '[]');
-            logs.unshift({ time: new Date().toLocaleString(), role: currentRole, action: action });
-            if(logs.length > 50) logs.pop();
-            localStorage.setItem('adminAuditLogs', JSON.stringify(logs));
-        }
+        // 🔴 บันทึก Audit ลง Google Sheets ถาวร
+        function logAction(action) { saveToCloud({action: "adminLog", role: currentRole, msg: action}); }
 
-        // 🔴 ระบบสิทธิ์ (RBAC) เข้าสู่ระบบ Backend
         async function adminLogin() {
             vibrate(); const role = document.getElementById('admin-role').value; const pass = document.getElementById('admin-pass').value;
-            showToast('กำลังตรวจสอบ...', 'info');
+            showToast('กำลังตรวจสอบความปลอดภัย...', 'info');
             try {
                 const res = await fetch(`${GAS_URL}?action=adminLogin&role=${role}&pass=${pass}`); const data = await res.json();
                 if(data.status === 'success') {
-                    currentRole = role;
-                    document.getElementById('login-screen').style.display = 'none'; 
-                    document.getElementById('sidebar').style.display = 'flex';
-                    document.getElementById('main-dashboard').style.display = 'block'; 
+                    currentRole = role; document.getElementById('login-screen').style.display = 'none'; 
+                    document.getElementById('sidebar').style.display = 'flex'; document.getElementById('main-dashboard').style.display = 'block'; 
                     document.getElementById('role-badge').innerText = role === 'super' ? "Super Admin" : "Staff Level";
-                    
-                    // ซ่อนปุ่มถ้าเป็น Staff
                     if(role === 'staff') { document.querySelectorAll('.super-only').forEach(el => el.style.display = 'none'); }
-                    
                     logAction("เข้าสู่ระบบสำเร็จ"); showToast("เข้าสู่ระบบสำเร็จ", "success"); loadAllUsers(); 
-                } else { showToast("รหัสผ่านไม่ถูกต้อง", "error"); }
+                } else { showToast(data.message, "error"); }
             } catch(e) { showToast('ระบบขัดข้อง', 'error'); }
         }
 
@@ -220,25 +204,27 @@
             if(tab === 'audit') loadAuditLogs();
         }
 
-        function loadAuditLogs() {
-            let logs = JSON.parse(localStorage.getItem('adminAuditLogs') || '[]');
-            const body = document.getElementById('audit-body');
-            if(logs.length === 0) { body.innerHTML = '<tr><td colspan="3" style="text-align:center;">ไม่มีประวัติ</td></tr>'; return; }
-            body.innerHTML = logs.map(l => `<tr><td style="color:var(--sub);">${l.time}</td><td><span class="status-badge" style="background:rgba(255,255,255,0.1);">${l.role.toUpperCase()}</span></td><td>${l.action}</td></tr>`).join('');
+        async function loadAuditLogs() {
+            const body = document.getElementById('audit-body'); body.innerHTML = '<tr><td colspan="3" style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงประวัติ...</td></tr>';
+            try {
+                const res = await fetch(GAS_URL + "?action=readLogs"); const data = await res.json();
+                if(data.length <= 1) { body.innerHTML = '<tr><td colspan="3" style="text-align:center;">ไม่มีประวัติ</td></tr>'; return; }
+                let html = "";
+                for(let i=data.length-1; i>=1; i--) { html += `<tr><td style="color:var(--sub);">${data[i][0]}</td><td><span class="status-badge" style="background:rgba(255,255,255,0.1);">${data[i][1].toUpperCase()}</span></td><td>${data[i][2]}</td></tr>`; }
+                body.innerHTML = html;
+            } catch(e) { body.innerHTML = '<tr><td colspan="3" style="text-align:center;">ดึงข้อมูลไม่สำเร็จ</td></tr>'; }
         }
 
         async function loadAllUsers() {
-            const body = document.getElementById('user-body'); body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
+            vibrate(); const body = document.getElementById('user-body'); body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
             try {
-                const res = await fetch(GAS_URL + "?action=readAll", { redirect: "follow" });
-                const data = await JSON.parse(await res.text()); globalData = data;
+                const res = await fetch(GAS_URL + "?action=readAll", { redirect: "follow" }); const data = await JSON.parse(await res.text()); globalData = data;
                 body.innerHTML = ""; let activeCount = 0, suspendCount = 0, totalCount = 0;
                 
                 if(data.length <= 1) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;">ยังไม่มีผู้ใช้งาน</td></tr>'; return; }
                 
                 for (let i = 1; i < data.length; i++) {
-                    if(!data[i][0]) continue; totalCount++;
-                    let status = data[i][12] || "Active"; let expiry = data[i][11] ? data[i][11].split('T')[0] : ""; 
+                    if(!data[i][0]) continue; totalCount++; let status = data[i][12] || "Active"; let expiry = data[i][11] ? data[i][11].split('T')[0] : ""; 
                     if(status === "Active") activeCount++; else suspendCount++;
                     
                     body.innerHTML += `
@@ -258,40 +244,20 @@
             } catch(e) { body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--warning);">เชื่อมต่อขัดข้อง</td></tr>'; }
         }
 
-        // 🔴 ระบบค้นหา (Search Filter)
-        function filterTable() {
-            let input = document.getElementById("search-box").value.toUpperCase();
-            let rows = document.querySelectorAll(".user-row");
-            rows.forEach(row => {
-                let id = row.querySelector(".uid").innerText.toUpperCase();
-                let name = row.querySelector(".uname").innerText.toUpperCase();
-                row.style.display = (id.includes(input) || name.includes(input)) ? "" : "none";
-            });
-        }
+        function filterTable() { let input = document.getElementById("search-box").value.toUpperCase(); let rows = document.querySelectorAll(".user-row"); rows.forEach(row => { let id = row.querySelector(".uid").innerText.toUpperCase(); let name = row.querySelector(".uname").innerText.toUpperCase(); row.style.display = (id.includes(input) || name.includes(input)) ? "" : "none"; }); }
 
-        function batchSuspend() {
-            customConfirm("ระงับบัญชีที่หมดอายุอัตโนมัติ?", () => {
-                showToast("กำลังประมวลผล...", "info"); logAction("สั่งรัน Batch Suspend (Auto-ban)");
-                saveToCloud({action: "batchSuspend"}); setTimeout(() => { showToast("รันสคริปต์เสร็จสิ้น", "success"); loadAllUsers(); }, 2000);
-            });
-        }
+        function batchSuspend() { customConfirm("ระงับบัญชีที่หมดอายุอัตโนมัติ?", () => { showToast("กำลังประมวลผล...", "info"); logAction("สั่งรัน Batch Suspend (Auto-ban)"); saveToCloud({action: "batchSuspend"}); setTimeout(() => { showToast("รันสคริปต์เสร็จสิ้น", "success"); loadAllUsers(); }, 2000); }); }
 
         function killSwitch() {
             const id = document.getElementById('edit-id').innerText;
             customConfirm(`ลบ ${id} ถาวร?`, () => {
-                client.publish(`familycare/${id}/command/kill_switch`, "true", {qos:1});
-                saveToCloud({action: "delete", system_id: id});
-                logAction(`บังคับลบข้อมูลและรีเซ็ตเครื่อง: ${id}`);
-                document.getElementById('edit-modal').style.display = 'none'; showToast(`ส่งคำสั่งลบ ${id}`, "success"); 
-                setTimeout(loadAllUsers, 1500); // 🔴 หน่วงเวลารีเฟรชให้ Sheet ลบเสร็จก่อน
+                client.publish(`familycare/${id}/command/kill_switch`, "true", {qos:1}); saveToCloud({action: "delete", system_id: id}); logAction(`บังคับลบข้อมูลและรีเซ็ตเครื่อง: ${id}`);
+                document.getElementById('edit-modal').style.display = 'none'; showToast(`ส่งคำสั่งลบ ${id}`, "success"); setTimeout(loadAllUsers, 1500); 
             });
         }
 
-        function sendBroadcast() { vibrate(); const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg); logAction(`ส่งประกาศ: ${msg}`); showToast("ส่งประกาศสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
-        
-        function openEdit(id, title, name, phone, expiry, status) { 
-            vibrate(); document.getElementById('edit-id').innerText = id; document.getElementById('edit-title').value = title; document.getElementById('edit-name').value = name; document.getElementById('edit-phone').value = phone; document.getElementById('edit-expiry').value = expiry; document.getElementById('edit-status').value = status; document.getElementById('edit-modal').style.display = 'flex'; 
-        }
+        function sendBroadcast() { vibrate(); const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg, {qos:1}); logAction(`ส่งประกาศ: ${msg}`); showToast("ส่งประกาศสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
+        function openEdit(id, title, name, phone, expiry, status) { vibrate(); document.getElementById('edit-id').innerText = id; document.getElementById('edit-title').value = title; document.getElementById('edit-name').value = name; document.getElementById('edit-phone').value = phone; document.getElementById('edit-expiry').value = expiry; document.getElementById('edit-status').value = status; document.getElementById('edit-modal').style.display = 'flex'; }
         
         function saveSubscription() {
             vibrate(); const id = document.getElementById('edit-id').innerText; const status = document.getElementById('edit-status').value;
@@ -299,9 +265,8 @@
             saveToCloud({action: "editUser", system_id: id, title: title, name: name, phone: phone});
             saveToCloud({action: "updateSubscription", system_id: id, expiry: document.getElementById('edit-expiry').value, status: status});
             
-            client.publish(`familycare/${id}/command/status_update`, status); logAction(`แก้ไขข้อมูลบัญชี: ${id}`);
-            document.getElementById('edit-modal').style.display = 'none'; showToast("บันทึกข้อมูลเรียบร้อย", "success"); 
-            setTimeout(loadAllUsers, 1500); // 🔴 หน่วงเวลารีเฟรชให้ Sheet อัปเดตเสร็จก่อน
+            client.publish(`familycare/${id}/command/status_update`, status, {qos:1}); logAction(`แก้ไขข้อมูลบัญชี: ${id}`);
+            document.getElementById('edit-modal').style.display = 'none'; showToast("บันทึกข้อมูลเรียบร้อย", "success"); setTimeout(loadAllUsers, 1500); 
         }
         
         function downloadCSV() { vibrate(); if(globalData.length <= 1) return; let csv = "data:text/csv;charset=utf-8,\uFEFF"; globalData.forEach(row => { csv += row.join(",") + "\r\n"; }); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "CustomerData_Backup.csv"); document.body.appendChild(link); link.click(); logAction("Export CSV Backup");}
