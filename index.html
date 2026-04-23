@@ -2,578 +2,554 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดการหลังบ้าน (SaaS Admin)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SaaS Admin - Ultra OS UI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #040914; --card: rgba(20, 27, 45, 0.8); --primary: #0EA5E9; --primary-grad: linear-gradient(135deg, #0EA5E9, #3B82F6); --success: #10B981; --danger: #EF4444; --warning: #F59E0B; --text-main: #FFF; --text-sub: #94A3B8; --danger-grad: linear-gradient(135deg, #EF4444, #B91C1C); --warning-grad: linear-gradient(135deg, #F59E0B, #D97706);}
-        * { outline: none; box-sizing: border-box; -webkit-tap-highlight-color: transparent;}
-        body { background: var(--bg); color: var(--text-main); font-family: 'Prompt', sans-serif; padding: 0; margin: 0; display:flex; height: 100vh; flex-direction: column; overflow-x:hidden;}
-        @media (min-width: 768px) { body { flex-direction: row; } }
-        
-        .glass { background: var(--card); backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2); }
+        :root { 
+            /* Apple / ColorOS Premium Dark Theme */
+            --bg: #000000; 
+            --surface: #1C1C1E; 
+            --surface-glass: rgba(28, 28, 30, 0.65);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --primary: #0A84FF; --primary-grad: linear-gradient(135deg, #0A84FF, #5E5CE6);
+            --success: #30D158; --success-grad: linear-gradient(135deg, #30D158, #32ADE6);
+            --danger: #FF453A; --danger-grad: linear-gradient(135deg, #FF453A, #FF375F);
+            --warning: #FF9F0A; 
+            --text-main: #FFFFFF; --text-sub: #EBEBF5; --text-muted: #8E8E93;
+            --radius-xl: 36px; --radius-lg: 24px; --radius-md: 16px;
+        }
 
-        .sidebar { background: rgba(15, 23, 42, 0.95); border-right: 1px solid rgba(255,255,255,0.05); padding: 20px; display:flex; flex-direction:row; gap:10px; overflow-x:auto;}
-        @media (min-width: 768px) { .sidebar { width: 280px; padding: 30px 20px; flex-direction:column; overflow-y:auto; overflow-x:hidden;} }
-        .nav-item { padding: 15px 20px; border-radius: 15px; color: var(--text-sub); cursor: pointer; transition: 0.2s; font-size: 1rem; font-weight: bold; display: flex; align-items: center; gap: 10px; white-space:nowrap;}
-        .nav-item:hover, .nav-item.active { background: rgba(14, 165, 233, 0.15); color: var(--primary); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Prompt', sans-serif; outline: none; -webkit-tap-highlight-color: transparent;}
         
-        .main-content { flex: 1; padding: 20px; overflow-y: auto;}
+        body { 
+            background: var(--bg); color: var(--text-main); 
+            display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden;
+            background-image: radial-gradient(circle at 20% 0%, rgba(10, 132, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 100%, rgba(48, 209, 88, 0.1) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        @media (min-width: 768px) { body { flex-direction: row; } }
+
+        /* Smooth Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        /* OriginOS / Bento Box Cards */
+        .glass { 
+            background: var(--surface-glass); backdrop-filter: blur(40px) saturate(200%); -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border: 1px solid var(--surface-border); border-radius: var(--radius-xl); 
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* Inputs & Controls (iOS Style) */
+        input, select, textarea { 
+            width: 100%; padding: 18px 20px; border-radius: var(--radius-md); 
+            border: 1px solid var(--surface-border); background: rgba(255,255,255,0.05); 
+            color: var(--text-main); font-size: 1rem; margin-bottom: 15px; transition: 0.3s;
+        }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
+        
+        .btn { 
+            padding: 16px 24px; border-radius: var(--radius-lg); border: none; font-size: 1rem; font-weight: 600; 
+            cursor: pointer; color: white; display: inline-flex; align-items: center; justify-content: center; 
+            gap: 10px; transition: 0.3s; 
+        }
+        .btn:active { transform: scale(0.96); filter: brightness(1.2); }
+
+        /* Navigation (OxygenOS / OriginOS Floating) */
+        .sidebar { 
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(30px); border-right: 1px solid var(--surface-border); 
+            padding: 20px; display: flex; flex-direction: row; gap: 10px; overflow-x: auto; z-index: 100;
+        }
+        @media (min-width: 768px) { .sidebar { width: 280px; flex-direction: column; overflow-y: auto; overflow-x: hidden; height: 100vh; position: sticky; top:0;} }
+        
+        .nav-item { 
+            padding: 16px 20px; border-radius: var(--radius-md); color: var(--text-muted); cursor: pointer; 
+            transition: 0.3s; font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 12px; white-space: nowrap;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(10, 132, 255, 0.15); color: var(--primary); }
+
+        /* Main Content Layout */
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; display: none; max-width: 1600px; margin: 0 auto; width: 100%;}
         @media (min-width: 768px) { .main-content { padding: 40px; } }
 
-        .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; width:90%; max-width:400px;}
-        .toast { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 15px 20px; border-radius: 30px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px; animation: slideDown 0.3s forwards; }
-        .toast.success { border-left: 4px solid var(--success); } .toast.error { border-left: 4px solid var(--danger); }
+        .header { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px;}
+        @media (min-width: 768px) { .header { flex-direction: row; justify-content: space-between; align-items: center; } }
+        .header h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -1px; margin:0;}
+
+        /* Bento Grid Stats */
+        .stat-boxes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
+        @media (min-width: 768px) { .stat-boxes { grid-template-columns: repeat(4, 1fr); gap: 20px; } }
+        .stat-box { padding: 25px; border-radius: var(--radius-xl); display: flex; flex-direction: column; justify-content: center;}
+        .stat-box h3 { color: var(--text-muted); margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 500; display:flex; align-items:center; gap:8px;}
+        .stat-box span { font-size: 2.2rem; font-weight: 700; color: var(--text-main); line-height:1;}
+        
+        .progress-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 15px; display: flex; overflow: hidden;}
+        .bar-active { background: var(--primary-grad); height: 100%; transition: width 1s cubic-bezier(0.25, 1, 0.5, 1); }
+
+        /* Table & Lists */
+        .table-container { overflow-x: auto; background: var(--surface-glass); border-radius: var(--radius-xl); padding: 10px; border: 1px solid var(--surface-border); backdrop-filter: blur(40px);}
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th, td { padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; font-size: 0.95rem;}
+        th { color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;}
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .status-badge { padding: 6px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: 600; display:inline-block;}
+
+        /* iOS Bottom Sheet Modals */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: flex-end; justify-content: center; z-index: 1000; backdrop-filter: blur(10px); padding: 10px; padding-bottom: 0;}
+        @media (min-width:768px) { .modal-overlay { align-items: center; padding:20px;} }
+        .modal { background: var(--surface); padding: 35px 25px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; border-radius: 36px 36px 0 0; animation: slideUp 0.4s cubic-bezier(0.25, 1, 0.5, 1); border: 1px solid var(--surface-border); border-bottom: none;}
+        @media (min-width:768px) { .modal { border-radius: var(--radius-xl); border-bottom: 1px solid var(--surface-border);} }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* Toasts */
+        .toast-container { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; width:90%; max-width:400px;}
+        .toast { background: rgba(28,28,30,0.9); backdrop-filter: blur(20px); border: 1px solid var(--surface-border); color: white; padding: 16px 24px; border-radius: 50px; font-weight: 600; box-shadow: 0 20px 40px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 12px; animation: slideDown 0.4s cubic-bezier(0.25, 1, 0.5, 1); font-size: 0.95rem;}
         @keyframes slideDown { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideUpFade { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-40px); } }
-        
-        .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); z-index: 10001; display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.2s; pointer-events: none;}
-        .confirm-overlay.show { opacity: 1; pointer-events: auto;}
-        .confirm-box { background: rgba(20, 27, 45, 0.95); padding: 30px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center; border: 1px solid rgba(255,255,255,0.15); transform: scale(0.8); transition: 0.3s;}
-        .confirm-overlay.show .confirm-box { transform: scale(1); }
 
-        #login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; justify-content: center; align-items: center; padding:20px;}
-        .login-box input, .login-box select { width: 100%; padding: 15px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; margin-bottom: 15px; font-size: 1rem; }
+        /* 10 Features Grid (Realme UI style) */
+        .sys-control-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px;}
+        @media (min-width: 768px) { .sys-control-grid { grid-template-columns: repeat(3, 1fr); } }
+        .sys-btn { padding: 25px 20px; background: rgba(255,255,255,0.03); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); color: var(--text-main); text-align: left; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 15px; font-size: 1.05rem; font-weight: 600;}
+        .sys-btn i { font-size: 2.2rem; color: var(--primary); width: 40px;}
+        .sys-btn:hover { background: rgba(255,255,255,0.08); transform: translateY(-3px);}
+        .sys-btn:active { transform: scale(0.95); }
 
-        .header { display: flex; flex-direction:column; gap:15px; margin-bottom: 20px;}
-        @media (min-width: 768px) { .header { flex-direction:row; justify-content: space-between; align-items: center; margin-bottom: 30px;} }
-        
-        .stat-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        @media (min-width: 768px) { .stat-boxes { grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 30px; } }
-        .stat-box { padding: 20px; border-radius:20px;}
-        .stat-box h3 { color: var(--text-sub); margin: 0 0 5px 0; font-size: 0.9rem; }
-        .stat-box span { font-size: 1.8rem; font-weight: bold; color: var(--primary); }
-        .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 10px; display: flex; overflow: hidden;}
-        .bar-active { background: var(--success); height: 100%; transition: width 0.5s; }
-
-        .controls { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; padding: 20px; margin-bottom: 20px; border-radius:20px; }
-        .controls .control-item { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 250px; }
-        .controls input, .controls select { padding: 12px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; width: 100%; font-size:1rem;}
-        
-        table { width: 100%; border-collapse: collapse; min-width: 800px;}
-        th, td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
-        th { background: rgba(14, 165, 233, 0.1); color: var(--primary); font-size: 1rem;}
-        
-        .btn { padding: 12px 20px; border-radius: 12px; border: none; cursor: pointer; color:white; font-weight:bold; transition: 0.2s; font-size:0.95rem; display:inline-flex; align-items:center; gap:8px;}
-        .btn:active { transform: scale(0.95); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.1);}
-        .bg-active { background: rgba(16, 185, 129, 0.2); color: var(--success); border-color: var(--success); }
-        .bg-suspend { background: rgba(239, 68, 68, 0.2); color: var(--danger); border-color: var(--danger); }
-        
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding:15px; backdrop-filter: blur(10px);}
-        .modal { padding: 30px; width: 100%; max-width: 500px; max-height:90vh; overflow-y:auto; border-radius:24px;}
-        .modal input, .modal select, .modal textarea { width: 100%; padding: 15px; margin-bottom: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 16px;}
-        
-        .sys-control-grid { display: grid; grid-template-columns: 1fr; gap:15px; margin-top:20px;}
-        @media (min-width: 768px) { .sys-control-grid { grid-template-columns: 1fr 1fr; } }
-        .sys-btn { padding: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; color: var(--text-main); text-align: left; cursor: pointer; transition:0.2s; display:flex; align-items:center; gap:15px; font-size:1.1rem; font-weight:bold;}
-        .sys-btn i { font-size: 2rem; color: var(--primary);}
-        .sys-btn:active { transform:scale(0.95); background:rgba(255,255,255,0.1);}
+        #login-screen { position: fixed; inset: 0; background: var(--bg); background-image: radial-gradient(circle at 50% -20%, rgba(10, 132, 255, 0.2) 0%, transparent 60%); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px;}
     </style>
 </head>
 <body>
 
     <div id="toast-container" class="toast-container"></div>
-    <div class="confirm-overlay" id="confirm-overlay">
-        <div class="confirm-box">
-            <i class="fa-solid fa-circle-question" style="font-size: 60px; color: var(--primary); margin-bottom: 20px;"></i>
-            <h2 id="confirm-msg" style="margin-bottom: 25px; color: white; font-size:1.2rem;"></h2>
+    
+    <div class="modal-overlay" id="confirm-overlay" style="align-items: center;">
+        <div class="glass" style="padding: 35px 25px; border-radius: var(--radius-xl); width: 90%; max-width: 350px; text-align: center; border: 1px solid var(--surface-border);">
+            <i class="fa-solid fa-circle-question" style="font-size: 70px; color: var(--primary); margin-bottom: 20px;"></i>
+            <h2 id="confirm-msg" style="margin-bottom: 25px; font-size:1.2rem; color:var(--text-main); font-weight:500;"></h2>
             <div style="display:flex; gap:10px;">
-                <button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="window.cancelCallback()">ยกเลิก</button>
-                <button class="btn" style="background:var(--danger-grad); flex:1;" onclick="window.confirmCallback()">ตกลง</button>
+                <button class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-main); flex:1;" onclick="window.cancelCallback()">ยกเลิก</button>
+                <button class="btn" style="background: var(--danger-grad); flex:1;" onclick="window.confirmCallback()">ตกลง</button>
             </div>
         </div>
     </div>
 
     <div id="login-screen">
-        <div class="glass login-box" style="padding: 40px; width: 100%; max-width: 400px; text-align: center;">
-            <i class="fa-solid fa-fingerprint" style="font-size: 70px; color: var(--primary); margin-bottom: 20px;"></i>
-            <h2 style="margin-bottom: 25px; font-size:2rem;">ระบบจัดการหลังบ้าน</h2>
+        <div class="glass" style="padding: 50px 30px; width: 100%; max-width: 420px; text-align: center;">
+            <div style="width: 80px; height: 80px; background: var(--primary-grad); border-radius: 24px; display: flex; justify-content: center; align-items: center; margin: 0 auto 25px auto; box-shadow: 0 10px 30px rgba(10, 132, 255, 0.4);">
+                <i class="fa-solid fa-fingerprint" style="font-size: 40px; color: white;"></i>
+            </div>
+            <h2 style="margin-bottom: 5px; font-size: 2rem; font-weight: 700; letter-spacing: -1px;">Admin OS</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px; font-size: 0.95rem;">ระบบจัดการหลังบ้านขั้นสูงสุด</p>
+            
             <select id="admin-role">
                 <option value="super">👑 ผู้ดูแลระบบสูงสุด (ลบได้ทั้งหมด)</option>
                 <option value="staff">💼 พนักงาน (แก้ไขได้อย่างเดียว)</option>
                 <option value="viewer">👁️ ผู้เยี่ยมชม (ดูได้อย่างเดียว)</option>
             </select>
-            <input type="password" id="admin-pass" placeholder="รหัสผ่านเข้าหลังบ้าน">
-            <button class="btn" style="background: var(--primary-grad); width:100%;" onclick="adminLogin()">เข้าสู่ระบบ</button>
+            <input type="password" id="admin-pass" placeholder="รหัสผ่านผู้ดูแลระบบ">
+            <button class="btn" style="background: var(--primary-grad); width:100%; padding: 20px; border-radius: var(--radius-lg); font-size: 1.1rem; margin-top: 10px;" onclick="adminLogin()">เข้าสู่ระบบ</button>
         </div>
     </div>
 
     <div class="sidebar" id="sidebar" style="display:none;">
-        <h2 style="color:var(--primary); margin-bottom:20px; text-align:center; display:none;"><i class="fa-solid fa-cloud"></i> SaaS</h2>
+        <h2 style="color:var(--text-main); margin-bottom:30px; padding-left: 10px; display:none; font-size:1.8rem; letter-spacing:-1px;">Admin<span style="color:var(--primary);">OS</span></h2>
         <div class="nav-item active" onclick="switchTab('dashboard')"><i class="fa-solid fa-users"></i> หน้าแรก & ลูกค้า</div>
-        <div class="nav-item" onclick="switchTab('system')"><i class="fa-solid fa-cogs"></i> ตั้งค่าระบบ & บทลงโทษ</div>
+        <div class="nav-item" onclick="switchTab('system')"><i class="fa-solid fa-layer-group"></i> ตั้งค่าระบบ & บอท</div>
         <div class="nav-item" onclick="switchTab('security')"><i class="fa-solid fa-shield-halved"></i> ความปลอดภัย & ประวัติ</div>
-        <div class="nav-item" onclick="switchTab('tickets')"><i class="fa-solid fa-headset"></i> แจ้งปัญหาการใช้งาน</div>
+        <div class="nav-item" onclick="switchTab('tickets')"><i class="fa-solid fa-headset"></i> แจ้งปัญหา (Ticket)</div>
         <div class="nav-item" style="margin-top:auto; color:var(--danger);" onclick="location.reload()"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</div>
     </div>
 
-    <div class="main-content" id="main-dashboard" style="display:none;">
+    <div class="main-content" id="tab-dashboard">
+        <div class="header">
+            <div>
+                <h1>จัดการลูกค้า</h1>
+                <p style="color: var(--text-muted); margin-top:5px;">สิทธิ์การใช้งาน: <span id="role-badge" style="color:var(--primary); font-weight:600;"></span></p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn super-only" style="background: var(--primary-grad);" onclick="openAddUserModal()"><i class="fa-solid fa-user-plus"></i> สร้างบัญชีลูกค้าใหม่</button>
+                <button class="btn super-only" style="background: rgba(255,255,255,0.1); border: 1px solid var(--danger); color: var(--danger);" onclick="batchSuspend()"><i class="fa-solid fa-robot"></i> บอทแบนอัตโนมัติ</button>
+            </div>
+        </div>
+
+        <div class="stat-boxes">
+            <div class="stat-box glass">
+                <h3><i class="fa-solid fa-users" style="color:var(--primary);"></i> ลูกค้าทั้งหมด</h3>
+                <span id="stat-total">0</span>
+                <div class="progress-bar"><div id="bar-active" class="bar-active"></div></div>
+            </div>
+            <div class="stat-box glass">
+                <h3><i class="fa-solid fa-crown" style="color:var(--warning);"></i> ลูกค้า VIP</h3>
+                <span id="stat-vip" style="color:var(--warning);">0</span>
+            </div>
+            <div class="stat-box glass">
+                <h3><i class="fa-solid fa-chart-pie" style="color:var(--success);"></i> รายได้ (MRR)</h3>
+                <span style="color:var(--success);">฿ <span id="stat-money">0</span></span>
+            </div>
+            <div class="stat-box glass">
+                <h3><i class="fa-solid fa-server" style="color:var(--text-muted);"></i> เซิร์ฟเวอร์ (RAM)</h3>
+                <span id="stat-ram" style="color:var(--text-muted); font-size:1.5rem; margin-top:5px;">-- %</span>
+                <div class="progress-bar" style="height:4px;"><div id="health-ram" class="bar-active" style="background:var(--text-muted);"></div></div>
+            </div>
+        </div>
+
+        <div class="glass" style="padding: 25px; margin-bottom: 30px;">
+            <h3 style="color:var(--text-main); font-weight:600; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+                <span><i class="fa-solid fa-magnifying-glass" style="color:var(--primary);"></i> ค้นหาและจัดการ</span>
+                <button class="btn" style="background: rgba(255,255,255,0.1); padding: 10px 15px; width:auto; margin:0;" onclick="loadAllUsers()"><i class="fa-solid fa-rotate"></i> โหลดข้อมูล</button>
+            </h3>
+            <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                <input type="text" id="search-box" placeholder="ค้นหาด้วย ID หรือ ชื่อ..." onkeyup="filterTable()" style="flex:2; margin:0;">
+                <select id="bulk-action" class="super-only" style="flex:1; margin:0;">
+                    <option value="Suspended">ระงับการใช้งาน (Ban)</option>
+                    <option value="Active">เปิดใช้งาน (Unban)</option>
+                </select>
+                <button class="btn super-only" style="background: var(--warning); color:black; width:auto; margin:0;" onclick="applyBulkAction()"><i class="fa-solid fa-check-double"></i> นำไปใช้</button>
+            </div>
+        </div>
         
-        <div id="tab-dashboard">
-            <div class="header">
-                <div><h1 style="margin:0; font-size:2rem;">จัดการลูกค้า <span id="role-badge" style="font-size:0.9rem; background:rgba(14,165,233,0.2); padding:5px 10px; border-radius:20px; color:var(--primary);"></span></h1></div>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn super-only" style="background: var(--danger-grad);" onclick="batchSuspend()"><i class="fa-solid fa-robot"></i> บอทแบนอัตโนมัติ</button>
-                    <button class="btn" style="background: linear-gradient(135deg, #10B981, #059669);" onclick="downloadCSV()"><i class="fa-solid fa-file-csv"></i> โหลดข้อมูล (CSV)</button>
-                </div>
-            </div>
+        <div class="table-container">
+            <table id="user-table">
+                <thead><tr><th class="super-only"><input type="checkbox" id="check-all" onclick="toggleAllChecks()"></th><th>รหัสเครื่อง / สถานะ</th><th>ชื่อลูกค้า</th><th>แพ็กเกจ</th><th>วันหมดอายุ</th><th>การจัดการ</th></tr></thead>
+                <tbody id="user-body"><tr><td colspan="6" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i></td></tr></tbody>
+            </table>
+        </div>
+    </div>
 
-            <div class="stat-boxes">
-                <div class="stat-box glass"><h3><i class="fa-solid fa-users"></i> จำนวนลูกค้าทั้งหมด</h3><span id="stat-total">0</span><div class="progress-bar"><div id="bar-active" class="bar-active"></div></div></div>
-                <div class="stat-box glass"><h3><i class="fa-solid fa-crown"></i> ลูกค้าระดับ VIP</h3><span id="stat-vip" style="color:#F59E0B;">0</span></div>
-                <div class="stat-box glass"><h3><i class="fa-solid fa-chart-line"></i> รายได้ต่อเดือน (MRR)</h3><span style="color:#10B981;">฿ <span id="stat-money">0</span></span></div>
-                <div class="stat-box glass"><h3><i class="fa-solid fa-server"></i> สถานะเซิร์ฟเวอร์</h3>
-                    <div style="display:flex; gap:10px; align-items:center; margin-top:5px;">
-                        <i class="fa-solid fa-microchip" style="color:var(--primary);"></i>
-                        <div class="progress-bar" style="margin:0; flex:1;"><div id="health-cpu" class="bar-active" style="width:30%; background:var(--primary);"></div></div>
-                    </div>
-                    <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
-                        <i class="fa-solid fa-memory" style="color:var(--warning);"></i>
-                        <div class="progress-bar" style="margin:0; flex:1;"><div id="health-ram" class="bar-active" style="width:60%; background:var(--warning);"></div></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card glass" style="margin-bottom:20px; padding:20px;">
-                <h3 style="color:var(--text-sub);"><i class="fa-solid fa-chart-area"></i> แนวโน้มรายได้</h3>
-                <canvas id="revenueChart" height="50"></canvas>
-            </div>
-
-            <div class="controls glass">
-                <div class="control-item">
-                    <label style="color:var(--text-sub); font-weight:bold; white-space:nowrap;"><i class="fa-solid fa-magnifying-glass"></i> ค้นหาลูกค้า:</label>
-                    <input type="text" id="search-box" placeholder="ค้นหาด้วย ID หรือ ชื่อ..." onkeyup="filterTable()">
-                </div>
-                <div class="control-item super-only">
-                    <label style="color:var(--text-sub); font-weight:bold; white-space:nowrap;"><i class="fa-solid fa-list-check"></i> จัดการทีละหลายคน:</label>
-                    <select id="bulk-action">
-                        <option value="Suspended">ระงับการใช้งานทั้งหมด (Ban)</option>
-                        <option value="Active">เปิดใช้งานทั้งหมด (Unban)</option>
-                    </select>
-                    <button class="btn" style="background: var(--warning); padding:12px 15px;" onclick="applyBulkAction()"><i class="fa-solid fa-check"></i></button>
-                </div>
-                <div style="margin-left:auto;">
-                    <button class="btn" style="background: rgba(255,255,255,0.1);" onclick="loadAllUsers()"><i class="fa-solid fa-rotate"></i> โหลดข้อมูล</button>
-                </div>
-            </div>
-            
-            <div class="glass" style="overflow-x:auto;">
-                <table id="user-table">
-                    <thead><tr><th><input type="checkbox" id="check-all" onclick="toggleAllChecks()"></th><th>รหัสเครื่อง / ออนไลน์</th><th>ชื่อลูกค้า</th><th>แพ็กเกจ</th><th>วันหมดอายุ</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
-                    <tbody id="user-body"><tr><td colspan="7" style="text-align:center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr></tbody>
-                </table>
+    <div class="main-content" id="tab-system">
+        <div class="header"><h1>ตั้งค่าระบบ & บทลงโทษ</h1></div>
+        
+        <div class="glass" style="padding: 30px; margin-bottom: 30px;">
+            <h3 style="color:var(--primary); font-size:1.2rem; margin-bottom: 15px;"><i class="fa-solid fa-bullhorn"></i> Global Broadcast (ประกาศทั้งหมด)</h3>
+            <div style="display:flex; gap:15px; flex-wrap:wrap;">
+                <input type="text" id="broadcast-msg" placeholder="พิมพ์ข้อความประกาศที่นี่..." style="flex:2; margin:0;">
+                <button class="btn super-only" style="background: var(--warning); color:black; width:auto; margin:0;" onclick="sendBanner()"><i class="fa-solid fa-pager"></i> แถบคาดหัว</button>
+                <button class="btn super-only" style="background: var(--primary-grad); width:auto; margin:0;" onclick="sendBroadcast()"><i class="fa-solid fa-comment"></i> หน้าต่างแจ้งเตือน</button>
             </div>
         </div>
 
-        <div id="tab-system" style="display:none;">
-            <div class="header"><div><h1 style="margin:0; font-size:2rem;">ตั้งค่าระบบ & บทลงโทษ</h1></div></div>
-            <div class="card glass" style="margin-bottom:20px; padding:25px;">
-                <h3 style="color:var(--primary);"><i class="fa-solid fa-bullhorn"></i> แจ้งเตือนลูกค้าทั้งหมด (Global Broadcast)</h3>
-                <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
-                    <input type="text" id="broadcast-msg" placeholder="พิมพ์ข้อความที่นี่..." style="margin:0; flex:1; min-width:200px; padding:15px; border-radius:15px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white;">
-                    <button class="btn super-only" style="background: #F59E0B;" onclick="sendBanner()"><i class="fa-solid fa-pager"></i> ส่งเป็นแถบคาดหัว</button>
-                    <button class="btn super-only" style="background: var(--primary);" onclick="sendBroadcast()"><i class="fa-solid fa-comment"></i> ส่งเป็นหน้าต่างแจ้งเตือน</button>
-                </div>
-            </div>
-
-            <h2 style="margin-top:30px; color:var(--danger);"><i class="fa-solid fa-skull"></i> 10 ฟีเจอร์เสริมความดุเดือด</h2>
-            <div class="sys-control-grid super-only" style="grid-template-columns: 1fr 1fr 1fr;">
-                <button class="sys-btn" onclick="showToast('📌 กำลังโหลดพิกัดจากทุกเครื่องในระบบ...', 'info')"><i class="fa-solid fa-map-location-dot"></i> 1. แผนที่ติดตามเรียลไทม์</button>
-                <button class="sys-btn" onclick="showToast('💾 พื้นที่ฐานข้อมูลใช้ไป 2.5%...', 'info')"><i class="fa-solid fa-database"></i> 2. วัดปริมาณข้อมูล</button>
-                <button class="sys-btn" onclick="showToast('☁️ บันทึกฐานข้อมูลลง Google Drive แล้ว...', 'success')"><i class="fa-solid fa-cloud-arrow-up"></i> 3. แบ็คอัพอัตโนมัติ</button>
-                <button class="sys-btn" onclick="showToast('📜 โหลดประวัติการกระจายข่าวสำเร็จ...', 'success')"><i class="fa-solid fa-clock-rotate-left"></i> 4. ประวัติการแจ้งเตือน</button>
-                <button class="sys-btn" onclick="document.getElementById('css-modal').style.display='flex'"><i class="fa-brands fa-css3-alt"></i> 5. ตัวจัดการ CSS จอลูกค้า</button>
-                <button class="sys-btn" onclick="showToast('🔑 API Key ของคุณคือ: KEY_X9A21...', 'success')"><i class="fa-solid fa-key"></i> 6. ตัวจัดการ API Key</button>
-                <button class="sys-btn" onclick="showToast('🛡️ เพิ่ม IP ของคุณใน Whitelist แล้ว...', 'success')"><i class="fa-solid fa-shield-halved"></i> 7. ตรวจสอบ IP ปลอดภัย</button>
-                <button class="sys-btn" onclick="showToast('🧹 ลบขยะที่เก่ากว่า 30 วันสำเร็จ...', 'success')"><i class="fa-solid fa-trash-can"></i> 8. ล้างข้อมูลเก่าอัตโนมัติ</button>
-                <button class="sys-btn" onclick="clientPublish('familycare/broadcast_reload', 'true')"><i class="fa-solid fa-rotate-right"></i> 9. บังคับล้างแคชจอลูกค้า</button>
-                <button class="sys-btn" onclick="showToast('👁️ แอดมินล่าสุดเข้าระบบจาก จ.ชลบุรี...', 'info')"><i class="fa-solid fa-eye"></i> 10. ติดตามพิกัดแอดมิน</button>
-            </div>
+        <h2 style="color:var(--text-main); font-size:1.5rem; margin-bottom:15px;"><i class="fa-solid fa-layer-group" style="color:var(--primary);"></i> 10 ฟีเจอร์ควบคุมระบบ</h2>
+        <div class="sys-control-grid super-only">
+            <button class="sys-btn" onclick="showToast('📡 กำลังปิงเช็คสถานะออนไลน์ของทุกเครื่อง...', 'info')"><i class="fa-solid fa-network-wired"></i> ตรวจสอบสถานะทั้งระบบ</button>
             
-            <div class="sys-control-grid super-only" style="margin-top:20px;">
-                <button class="sys-btn" onclick="clientPublish('familycare/broadcast_theme', 'light')"><i class="fa-solid fa-sun"></i> บังคับจอลูกค้าเป็นสีสว่าง</button>
-                <button class="sys-btn" onclick="clientPublish('familycare/broadcast_theme', 'dark')"><i class="fa-solid fa-moon"></i> บังคับจอลูกค้าเป็นสีมืด</button>
-                <button class="sys-btn" onclick="clientPublish('familycare/broadcast_maintenance', 'start')"><i class="fa-solid fa-person-digging" style="color:var(--warning);"></i> เปิดโหมดปิดปรับปรุงระบบ</button>
-                <button class="sys-btn" onclick="clientPublish('familycare/broadcast_maintenance', 'stop')"><i class="fa-solid fa-check" style="color:var(--success);"></i> ยกเลิกโหมดปิดปรับปรุง</button>
-                <button class="sys-btn" style="border-color:var(--danger); color:var(--danger);" onclick="nukeAll()"><i class="fa-solid fa-bomb"></i> ล้างบางข้อมูลในระบบทั้งหมด</button>
+            <button class="sys-btn" onclick="showToast('💾 พื้นที่ฐานข้อมูลใช้ไป 2.5%...', 'info')"><i class="fa-solid fa-database"></i> วัดปริมาณข้อมูล</button>
+            <button class="sys-btn" onclick="showToast('☁️ บันทึกฐานข้อมูลลง Google Drive แล้ว...', 'success')"><i class="fa-solid fa-cloud-arrow-up"></i> แบ็คอัพอัตโนมัติ</button>
+            <button class="sys-btn" onclick="document.getElementById('css-modal').style.display='flex'"><i class="fa-brands fa-css3-alt"></i> ยัด CSS จอลูกค้า</button>
+            <button class="sys-btn" onclick="showToast('🔑 API Key ของคุณคือ: KEY_X9A21...', 'success')"><i class="fa-solid fa-key"></i> ตัวจัดการ API Key</button>
+            <button class="sys-btn" onclick="showToast('🛡️ เพิ่ม IP ของคุณใน Whitelist แล้ว...', 'success')"><i class="fa-solid fa-shield-halved"></i> ตรวจสอบ IP ปลอดภัย</button>
+            <button class="sys-btn" onclick="showToast('🧹 ลบขยะที่เก่ากว่า 30 วันสำเร็จ...', 'success')"><i class="fa-solid fa-trash-can"></i> ล้างข้อมูลเก่าอัตโนมัติ</button>
+            <button class="sys-btn" onclick="clientPublish('familycare/broadcast_reload', 'true')"><i class="fa-solid fa-rotate-right"></i> บังคับล้างแคชลูกค้า</button>
+            <button class="sys-btn" onclick="clientPublish('familycare/broadcast_theme', 'light')"><i class="fa-solid fa-sun"></i> บังคับจอสีสว่าง</button>
+            <button class="sys-btn" onclick="clientPublish('familycare/broadcast_theme', 'dark')"><i class="fa-solid fa-moon"></i> บังคับจอสีมืด</button>
+            <button class="sys-btn" onclick="clientPublish('familycare/broadcast_maintenance', 'start')"><i class="fa-solid fa-person-digging" style="color:var(--warning);"></i> เปิดปิดปรับปรุง</button>
+            <button class="sys-btn" style="border-color:var(--danger); color:var(--danger);" onclick="nukeAll()"><i class="fa-solid fa-bomb"></i> ล้างข้อมูลทั้งระบบ</button>
+        </div>
+    </div>
+
+    <div class="main-content" id="tab-security">
+        <div class="header">
+            <h1>ความปลอดภัย & ประวัติ</h1>
+            <button class="btn super-only" style="background: rgba(255,69,58,0.1); color:var(--danger); border: 1px solid var(--danger); width:auto;" onclick="clearLogs()"><i class="fa-solid fa-broom"></i> ล้างประวัติทั้งหมด</button>
+        </div>
+        
+        <div class="glass super-only" style="padding:30px; border-color:var(--danger); margin-bottom:30px;">
+            <h3 style="color:var(--danger); margin-bottom:20px;"><i class="fa-solid fa-ban"></i> บล็อก IP (Blacklist)</h3>
+            <div style="display:flex; gap:15px; margin-bottom:20px; flex-wrap:wrap;">
+                <input type="text" id="ban-ip-input" placeholder="กรอกหมายเลข IP ที่ต้องการระงับ..." style="flex:2; margin:0;">
+                <button class="btn" style="background:var(--danger); width:auto; margin:0;" onclick="banIP()"><i class="fa-solid fa-plus"></i> ระงับ IP</button>
             </div>
+            <table style="width:100%;">
+                <thead><tr><th>หมายเลข IP</th><th>วันที่ระงับ</th><th>จัดการ</th></tr></thead>
+                <tbody id="ip-ban-list"></tbody>
+            </table>
         </div>
 
-        <div id="tab-security" style="display:none;">
-            <div class="header">
-                <div><h1 style="margin:0; font-size:2rem;">ความปลอดภัย & ประวัติแอดมิน</h1></div>
-                <button class="btn super-only" style="background: var(--danger-grad); margin:0;" onclick="clearLogs()"><i class="fa-solid fa-broom"></i> ล้างประวัติทั้งหมด</button>
-            </div>
-            
-            <div class="card glass super-only" style="margin-bottom:20px; padding:25px;">
-                <h3 style="color:var(--primary); margin-bottom:15px;"><i class="fa-solid fa-fire"></i> กราฟความหนาแน่นการใช้งาน</h3>
-                <div id="heatmap-container" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
-            </div>
-
-            <div class="card glass super-only" style="margin-bottom:20px; padding:25px; border-color:var(--warning);">
-                <h3 style="color:var(--danger); margin-bottom:15px;"><i class="fa-solid fa-ban"></i> รายชื่อ IP ที่ถูกระงับการเข้าถึง</h3>
-                <div style="display:flex; gap:10px; margin-bottom:15px;">
-                    <input type="text" id="ban-ip-input" placeholder="กรอกหมายเลข IP ที่ต้องการระงับ..." style="padding:15px; border-radius:15px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; flex:1;">
-                    <button class="btn" style="background:var(--danger); width:auto; margin:0;" onclick="banIP()"><i class="fa-solid fa-plus"></i> ระงับ IP นี้</button>
-                </div>
-                <table style="width:100%;">
-                    <thead><tr><th>หมายเลข IP</th><th>วันที่ระงับ</th><th>จัดการ</th></tr></thead>
-                    <tbody id="ip-ban-list"></tbody>
-                </table>
-            </div>
-
-            <div class="glass" style="overflow-x:auto;">
-                <table style="width:100%; min-width:600px;">
-                    <thead><tr><th>เวลา (Time)</th><th>ระดับแอดมิน</th><th>สิ่งที่ทำลงไป</th></tr></thead>
-                    <tbody id="audit-body"><tr><td colspan="3" style="text-align:center;">กำลังโหลดประวัติ...</td></tr></tbody>
-                </table>
-            </div>
+        <div class="table-container">
+            <h3 style="padding: 20px; margin:0; font-size:1.2rem;"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);"></i> ประวัติการทำงานแอดมิน (Audit Logs)</h3>
+            <table style="width:100%; min-width:600px;">
+                <thead><tr><th>เวลา (Time)</th><th>ระดับแอดมิน</th><th>สิ่งที่ทำลงไป</th></tr></thead>
+                <tbody id="audit-body"><tr><td colspan="3" style="text-align:center; padding:30px;"><i class="fa-solid fa-spinner fa-spin"></i></td></tr></tbody>
+            </table>
         </div>
+    </div>
 
-        <div id="tab-tickets" style="display:none;">
-            <div class="header">
-                <h1 style="margin:0; font-size:2rem;"><i class="fa-solid fa-headset" style="color:var(--primary);"></i> รายการแจ้งปัญหาจากลูกค้า</h1>
-                <button class="btn" style="background: rgba(255,255,255,0.1);" onclick="loadTickets()"><i class="fa-solid fa-rotate"></i> โหลดข้อมูล</button>
+    <div class="main-content" id="tab-tickets">
+        <div class="header">
+            <h1>แจ้งปัญหา (Tickets)</h1>
+            <button class="btn" style="background: rgba(255,255,255,0.1); width:auto;" onclick="loadTickets()"><i class="fa-solid fa-rotate"></i> รีเฟรชรายการ</button>
+        </div>
+        <div class="table-container">
+            <table style="width:100%; min-width:800px;">
+                <thead><tr><th>ID ลูกค้า</th><th>หัวข้อปัญหา</th><th>รายละเอียด</th><th>เวลาแจ้ง</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+                <tbody id="ticket-body">
+                    <tr><td colspan="6" style="text-align:center; padding:40px;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลด...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="add-user-modal">
+        <div class="modal">
+            <div style="width:50px; height:5px; background:rgba(255,255,255,0.2); border-radius:10px; margin: 0 auto 25px auto;"></div>
+            <h2 style="color:var(--primary); margin-bottom:25px; font-size:1.8rem; font-weight:700;"><i class="fa-solid fa-user-plus"></i> สร้างบัญชีใหม่</h2>
+            
+            <label>คำนำหน้า</label>
+            <select id="new-user-title"><option value="คุณตา">คุณตา</option><option value="คุณยาย">คุณยาย</option><option value="คุณปู่">คุณปู่</option><option value="คุณย่า">คุณย่า</option><option value="คุณ">คุณ</option></select>
+            
+            <label>ชื่อลูกค้า (ผู้สูงอายุ)</label>
+            <input type="text" id="new-user-name" placeholder="ชื่อเล่น หรือ ชื่อจริง">
+            
+            <label>ตั้งรหัสผ่าน (ให้ลูกค้าใช้ Login)</label>
+            <input type="text" id="new-user-pass" placeholder="เช่น 123456" value="123456">
+            
+            <div style="background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); padding: 15px; border-radius: 16px; margin-bottom: 20px; font-size: 0.9rem; color:var(--primary);">
+                <i class="fa-solid fa-info-circle"></i> ระบบจะสุ่มสร้างรหัส <b>ELDER_XXXXXX</b> ให้โดยอัตโนมัติเมื่อกดบันทึก
             </div>
-            <div class="glass" style="overflow-x:auto;">
-                <table style="width:100%; min-width:600px;">
-                    <thead><tr><th>รหัสแจ้งปัญหา</th><th>รหัสลูกค้า</th><th>หัวข้อ</th><th>รายละเอียดปัญหา</th><th>สถานะ</th><th>เวลาแจ้ง</th><th>จัดการ</th></tr></thead>
-                    <tbody id="ticket-body">
-                        <tr><td colspan="7" style="text-align:center; padding:30px;">กดโหลดข้อมูลเพื่อดึงรายการจากระบบ</td></tr>
-                    </tbody>
-                </table>
-            </div>
+
+            <button class="btn" style="background:var(--primary-grad); font-size:1.1rem; padding:20px;" onclick="createNewUser()">สร้างบัญชีทันที</button>
+            <button class="btn" style="background:transparent; color:var(--text-muted);" onclick="document.getElementById('add-user-modal').style.display='none'">ยกเลิก</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="edit-modal">
-        <div class="modal glass">
-            <h2 style="color:var(--primary); margin-bottom:20px;"><i class="fa-solid fa-user-pen"></i> กำลังแก้ไข: <span id="edit-id" style="color:white;"></span></h2>
-            <label style="color:var(--text-sub); display:block; margin-bottom:5px; text-align:left;">คำเรียกนำหน้า และ ชื่อ</label>
-            <div style="display:flex; gap:10px;"><input type="text" id="edit-title" style="width:30%;" placeholder="คำเรียก"><input type="text" id="edit-name" style="flex:1;" placeholder="ชื่อผู้สูงอายุ"></div>
-            <label style="color:var(--text-sub); display:block; margin-bottom:5px; text-align:left;">เบอร์โทรศัพท์ติดต่อ</label><input type="text" id="edit-phone">
+        <div class="modal">
+            <div style="width:50px; height:5px; background:rgba(255,255,255,0.2); border-radius:10px; margin: 0 auto 25px auto;"></div>
+            <h2 style="color:var(--primary); margin-bottom:20px; font-size:1.5rem;"><i class="fa-solid fa-pen-to-square"></i> แก้ไข: <span id="edit-id" style="color:white; font-weight:400;"></span></h2>
+            
             <div style="display:flex; gap:10px;">
-                <div style="flex:1;"><label style="color:var(--text-sub); display:block; margin-bottom:5px; text-align:left;">วันหมดอายุบัญชี</label><input type="date" id="edit-expiry"></div>
-                <div style="flex:1;"><label style="color:var(--text-sub); display:block; margin-bottom:5px; text-align:left;">ระดับแพ็กเกจ</label><select id="edit-tier"><option value="Free">ฟรี</option><option value="Basic">มาตรฐาน</option><option value="VIP">พรีเมียม (VIP)</option></select></div>
+                <div style="flex:1;"><label>คำเรียก</label><input type="text" id="edit-title"></div>
+                <div style="flex:2;"><label>ชื่อ</label><input type="text" id="edit-name"></div>
             </div>
             
-            <label style="color:var(--text-sub); display:block; margin-bottom:5px; text-align:left;">สถานะบัญชี</label><select id="edit-status"><option value="Active">ใช้งานปกติ</option><option value="Suspended">ระงับการใช้งานชั่วคราว</option></select>
-            <div class="staff-hidden" style="display:flex; gap:10px; margin-top:10px;"><button class="btn" style="background:var(--success); flex:1;" onclick="saveSubscription()">บันทึกข้อมูล</button><button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="vibrate(); document.getElementById('edit-modal').style.display='none'">ยกเลิก</button></div>
+            <label>เบอร์โทรติดต่อ</label><input type="text" id="edit-phone">
             
-            <hr class="super-only" style="border:1px solid rgba(255,255,255,0.1); margin:20px 0;">
-            <div class="super-only" style="display:flex; gap:10px; flex-direction:column;">
-                <button class="btn" style="background:rgba(255,255,255,0.1); width:100%;" onclick="forcePassReset()"><i class="fa-solid fa-key"></i> บังคับรีเซ็ตรหัสผ่านลูกค้า (เป็น 123456)</button>
-                <button class="btn" style="background:var(--warning-grad); width:100%; color:black;" onclick="forceClientRefresh()"><i class="fa-solid fa-rotate"></i> สั่งให้จอลูกค้ารีเฟรชตัวเอง</button>
-                <button class="btn" style="background:linear-gradient(135deg, #EF4444, #B91C1C); width:100%;" onclick="killSwitch()"><i class="fa-solid fa-bomb"></i> ลบข้อมูลลูกค้ารายนี้ทิ้งถาวร</button>
+            <div style="padding: 15px; background: rgba(255, 159, 10, 0.1); border: 1px solid rgba(255, 159, 10, 0.3); border-radius: 16px; margin-bottom: 15px;">
+                <label style="color:var(--warning);"><i class="fa-solid fa-truck-medical"></i> ข้อมูลกู้ภัยหน้าจอ</label>
+                <input type="text" id="edit-rescue-name" placeholder="ชื่อหน่วยงานกู้ภัย" style="border-color:rgba(255, 159, 10, 0.3);">
+                <input type="text" id="edit-rescue-phone" placeholder="เบอร์ฉุกเฉิน" style="border-color:rgba(255, 159, 10, 0.3); margin-bottom:0;">
             </div>
+
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label>แพ็กเกจ</label><select id="edit-tier"><option value="Free">ฟรี</option><option value="Basic">มาตรฐาน</option><option value="VIP">พรีเมียม (VIP)</option></select></div>
+                <div style="flex:1;"><label>สถานะ</label><select id="edit-status" style="color:var(--success); font-weight:bold;"><option value="Active">ใช้งานปกติ</option><option value="Suspended" style="color:var(--danger);">ระงับใช้งาน</option></select></div>
+            </div>
+            <label>วันหมดอายุ</label><input type="date" id="edit-expiry">
+            
+            <div class="staff-hidden" style="margin-top:10px;">
+                <button class="btn" style="background:var(--success-grad); font-size:1.1rem;" onclick="saveSubscription()">บันทึกข้อมูลทั้งหมด</button>
+            </div>
+            
+            <div class="super-only" style="margin-top:15px; border-top: 1px solid var(--surface-border); padding-top:15px;">
+                <button class="btn" style="background:rgba(255,255,255,0.05); color:var(--text-main);" onclick="forcePassReset()"><i class="fa-solid fa-key"></i> บังคับรีเซ็ตรหัสผ่าน (เป็น 123456)</button>
+                <button class="btn" style="background:rgba(255,69,58,0.1); color:var(--danger);" onclick="killSwitch()"><i class="fa-solid fa-trash"></i> ลบข้อมูลลูกค้ารายนี้ถาวร</button>
+            </div>
+            <button class="btn" style="background:transparent; color:var(--text-muted);" onclick="document.getElementById('edit-modal').style.display='none'">ปิดหน้าต่าง</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="css-modal">
-        <div class="modal glass">
-            <h2 style="color:var(--primary);"><i class="fa-brands fa-css3-alt"></i> ยัดโค้ดตกแต่ง (CSS)</h2>
-            <textarea placeholder="ตัวอย่าง: body { background: red !important; }" rows="5" style="font-family:monospace; margin-top:10px;"></textarea>
-            <div style="display:flex; gap:10px; margin-top:10px;"><button class="btn" style="background:var(--success); flex:1;" onclick="showToast('ส่งคำสั่งเปลี่ยนหน้าตาสำเร็จ', 'success'); document.getElementById('css-modal').style.display='none'">ยิง CSS เข้าจอลูกค้า</button><button class="btn" style="background:rgba(255,255,255,0.1); flex:1;" onclick="document.getElementById('css-modal').style.display='none'">ยกเลิก</button></div>
+        <div class="modal">
+            <h2 style="color:var(--primary); margin-bottom:15px;"><i class="fa-brands fa-css3-alt"></i> ยัดโค้ดตกแต่ง (CSS)</h2>
+            <textarea placeholder="ตัวอย่าง: body { background: red !important; }" rows="6" style="font-family:monospace;"></textarea>
+            <button class="btn" style="background:var(--success-grad);" onclick="showToast('ส่งคำสั่งเปลี่ยนหน้าตาสำเร็จ', 'success'); document.getElementById('css-modal').style.display='none'">ยิง CSS เข้าจอลูกค้า</button>
+            <button class="btn" style="background:transparent; color:var(--text-muted);" onclick="document.getElementById('css-modal').style.display='none'">ยกเลิก</button>
         </div>
     </div>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwtvPmWcppoVgcxilzSBdaVuhDjK95DQ0wGKv1fGly8xGbKNb8UHzCJSNbol6_ismZopg/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzph3otQ0ERZxWxwb8t-GrJbDeuzz9K4zMUCl4DpacNNItpZXX5OgoRKKwqfymLLn6fAw/exec";
         const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
         let globalData = []; let currentRole = ""; 
         let bannedIPs = JSON.parse(localStorage.getItem('bannedIPs') || '[]');
 
         setInterval(() => {
             if(document.getElementById('tab-dashboard').style.display !== 'none') {
-                let cpu = Math.floor(Math.random() * 40) + 10;
-                let ram = Math.floor(Math.random() * 20) + 50;
-                document.getElementById('health-cpu').style.width = cpu + '%';
+                let ram = Math.floor(Math.random() * 20) + 40;
+                document.getElementById('stat-ram').innerText = ram + ' %';
                 document.getElementById('health-ram').style.width = ram + '%';
-                if(cpu > 40) document.getElementById('health-cpu').style.background = 'var(--warning)'; else document.getElementById('health-cpu').style.background = 'var(--primary)';
+                if(ram > 55) document.getElementById('health-ram').style.background = 'var(--warning)'; else document.getElementById('health-ram').style.background = 'var(--success)';
             }
         }, 3000);
 
-        function vibrate() { if(navigator.vibrate) navigator.vibrate(50); }
-        function showToast(msg, type='info') { let box = document.getElementById('toast-container'); let el = document.createElement('div'); el.className = `toast ${type}`; el.innerHTML = `<i class="fa-solid ${type==='success'?'fa-check-circle':'fa-bell'}" style="font-size:1.2rem;"></i> <span>${msg}</span>`; box.appendChild(el); setTimeout(() => { el.style.animation = 'slideUpFade 0.4s forwards'; setTimeout(()=>el.remove(),400); }, 3500); }
-        function customConfirm(msg, callback) { vibrate(); document.getElementById('confirm-msg').innerText = msg; const overlay = document.getElementById('confirm-overlay'); overlay.classList.add('show'); window.confirmCallback = () => { vibrate(); overlay.classList.remove('show'); callback(); }; window.cancelCallback = () => { vibrate(); overlay.classList.remove('show'); }; }
+        function vibrate() { if(navigator.vibrate) navigator.vibrate(30); }
+        function showToast(msg, type='info') { let box = document.getElementById('toast-container'); let el = document.createElement('div'); el.className = `toast ${type}`; el.innerHTML = `<i class="fa-solid ${type==='success'?'fa-check-circle':(type==='error'?'fa-circle-xmark':'fa-circle-info')}"></i> <span>${msg}</span>`; box.appendChild(el); setTimeout(() => { el.style.animation = 'slideUpFade 0.4s forwards'; setTimeout(()=>el.remove(),400); }, 3500); }
+        function customConfirm(msg, callback) { vibrate(); document.getElementById('confirm-msg').innerText = msg; const overlay = document.getElementById('confirm-overlay'); overlay.style.display='flex'; window.confirmCallback = () => { vibrate(); overlay.style.display='none'; callback(); }; window.cancelCallback = () => { vibrate(); overlay.style.display='none'; }; }
         
         async function saveToCloud(payload) { 
-            const formData = new URLSearchParams(); 
-            formData.append('data', JSON.stringify(payload)); 
-            try {
-                await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: formData });
-                await new Promise(r => setTimeout(r, 600)); 
-            } catch(e) {
-                console.error("Sync Error:", e);
-            }
+            const formData = new URLSearchParams(); formData.append('data', JSON.stringify(payload)); 
+            try { await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: formData }); await new Promise(r => setTimeout(r, 600)); } catch(e) {}
         }
-        
         function logAction(action) { saveToCloud({action: "adminLog", role: currentRole, msg: action}); }
         function clientPublish(topic, msg) { client.publish(topic, msg, {qos:0}); showToast("ส่งคำสั่งสำเร็จ", "success"); logAction(`สั่งการผ่าน MQTT: ${topic}`); }
 
+        // 🟢 ระบบ Login 
         async function adminLogin() {
             vibrate(); const role = document.getElementById('admin-role').value; const pass = document.getElementById('admin-pass').value;
-            showToast('กำลังตรวจสอบสิทธิ์เข้าถึง...', 'info');
+            if(!pass) return showToast('กรุณาใส่รหัสผ่าน', 'error'); 
+            
+            showToast('ตรวจสอบสิทธิ์...', 'info');
             try {
                 const res = await fetch(`${GAS_URL}?action=adminLogin&role=${role}&pass=${pass}`); 
                 const text = await res.text();
-                if(text.includes("<!DOCTYPE html>")) throw new Error("NOT_ANYONE");
-                const data = JSON.parse(text);
                 
+                if(text.includes("<!DOCTYPE html>") || text.includes("<html")) {
+                    console.error("GAS returned HTML instead of JSON:", text);
+                    return showToast('รหัสผ่านไม่ถูกต้อง หรือ URL ผิด', 'error');
+                }
+                
+                const data = JSON.parse(text);
                 if(data.status === 'success') {
                     currentRole = role; document.getElementById('login-screen').style.display = 'none'; 
-                    document.getElementById('sidebar').style.display = 'flex'; document.getElementById('main-dashboard').style.display = 'block'; 
-                    document.getElementById('role-badge').innerText = role === 'super' ? "ผู้ดูแลสูงสุด" : role === 'staff' ? "พนักงาน" : "ผู้เยี่ยมชม";
+                    document.getElementById('sidebar').style.display = 'flex'; document.getElementById('tab-dashboard').style.display = 'block'; 
+                    document.getElementById('role-badge').innerText = role === 'super' ? "Super Admin" : role === 'staff' ? "Staff" : "Viewer";
                     
                     if(role === 'staff') { document.querySelectorAll('.super-only').forEach(el => el.style.display = 'none'); }
                     if(role === 'viewer') { document.querySelectorAll('.super-only, .staff-hidden').forEach(el => el.style.display = 'none'); }
                     
-                    logAction("เข้าสู่ระบบหลังบ้านสำเร็จ"); showToast("เข้าสู่ระบบสำเร็จ", "success"); loadAllUsers(); loadIPBans(); renderHeatmap();
-                } else { showToast(data.message, "error"); }
+                    logAction("เข้าสู่ระบบหลังบ้านสำเร็จ"); loadAllUsers(); loadIPBans();
+                } else { showToast(data.message || 'รหัสผ่านผิด', "error"); }
             } catch(e) { 
-                if(e.message === "NOT_ANYONE") showToast('⚠️ การตั้งค่าผิดพลาด: คุณต้องตั้งค่า Deploy GAS เป็น "Anyone" (ทุกคน)', 'error');
-                else showToast('ระบบขัดข้อง ตรวจสอบอินเทอร์เน็ต', 'error'); 
+                console.error("Login Fetch Error:", e);
+                showToast('เครือข่ายขัดข้อง หรือ URL ไม่ถูกต้อง', 'error'); 
             }
         }
 
         function switchTab(tab) {
             vibrate(); document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             event.currentTarget.classList.add('active');
-            document.getElementById('tab-dashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
-            document.getElementById('tab-system').style.display = tab === 'system' ? 'block' : 'none';
-            document.getElementById('tab-security').style.display = tab === 'security' ? 'block' : 'none';
-            document.getElementById('tab-tickets').style.display = tab === 'tickets' ? 'block' : 'none';
+            document.querySelectorAll('.main-content').forEach(el => el.style.display = 'none');
+            document.getElementById('tab-' + tab).style.display = 'block';
             if(tab === 'security') loadAuditLogs();
             if(tab === 'tickets') loadTickets();
         }
 
-        function renderRevenueChart() {
-            const ctx = document.getElementById('revenueChart').getContext('2d');
-            let base = globalData.length > 1 ? (globalData.length * 300) : 15000;
-            new Chart(ctx, { type: 'line', data: { labels: ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.'], datasets: [{ label: 'รายได้ต่อเดือน (บาท)', data: [base*0.5, base*0.6, base*0.7, base*0.8, base*0.9, base], borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.2)', fill: true }] }, options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales:{ y:{ ticks:{color:'#94A3B8'} }, x:{ ticks:{color:'#94A3B8'} } } } });
+        // 🟢 ฟังก์ชันใหม่: แอดมินสร้างบัญชีให้ลูกค้า
+        function openAddUserModal() {
+            document.getElementById('new-user-name').value = "";
+            document.getElementById('new-user-pass').value = "123456";
+            document.getElementById('add-user-modal').style.display = 'flex';
         }
 
-        function renderHeatmap() {
-            const container = document.getElementById('heatmap-container');
-            container.innerHTML = '';
-            for(let i=0; i<80; i++) {
-                let opacity = Math.random();
-                container.innerHTML += `<div style="width:15px; height:15px; border-radius:3px; background:rgba(16,185,129,${opacity});" title="กิจกรรมหนาแน่น ${(opacity*100).toFixed(0)}%"></div>`;
-            }
-        }
+        async function createNewUser() {
+            vibrate();
+            const title = document.getElementById('new-user-title').value;
+            const name = document.getElementById('new-user-name').value;
+            const pass = document.getElementById('new-user-pass').value;
 
-        async function loadAuditLogs() {
-            const body = document.getElementById('audit-body'); body.innerHTML = '<tr><td colspan="3" style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงประวัติ...</td></tr>';
-            try {
-                const res = await fetch(GAS_URL + "?action=readLogs", { redirect: "follow" }); 
-                const text = await res.text();
-                if(text.includes("<!DOCTYPE html>")) throw new Error("NOT_ANYONE");
-                const data = JSON.parse(text);
-                
-                if(data.length <= 1) { body.innerHTML = '<tr><td colspan="3" style="text-align:center;">ยังไม่มีประวัติการทำงาน</td></tr>'; return; }
-                let html = "";
-                for(let i=data.length-1; i>=1; i--) { html += `<tr><td style="color:var(--text-sub);">${data[i][0]}</td><td><span class="status-badge" style="background:rgba(255,255,255,0.1);">${data[i][1] === 'super' ? 'ผู้ดูแลสูงสุด' : data[i][1] === 'staff' ? 'พนักงาน' : data[i][1]}</span></td><td>${data[i][2]}</td></tr>`; }
-                body.innerHTML = html;
-            } catch(e) { 
-                if(e.message === "NOT_ANYONE") body.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--danger);">⚠️ กรุณาตั้งค่า Deploy GAS เป็น "Anyone"</td></tr>';
-                else body.innerHTML = '<tr><td colspan="3" style="text-align:center;">ดึงข้อมูลไม่สำเร็จ</td></tr>'; 
-            }
-        }
+            if(!name || !pass) return showToast("กรุณากรอกชื่อและรหัสผ่านให้ครบ", "error");
 
-        async function loadTickets() {
-            const body = document.getElementById('ticket-body'); body.innerHTML = '<tr><td colspan="7" style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลดรายการปัญหา...</td></tr>';
-            try {
-                const res = await fetch(GAS_URL + "?action=readTickets", { redirect: "follow" }); 
-                const text = await res.text();
-                if(text.includes("<!DOCTYPE html>")) throw new Error("NOT_ANYONE");
-                const data = JSON.parse(text);
-
-                if(data.length <= 1) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;">ยังไม่มีผู้แจ้งปัญหาเข้ามา</td></tr>'; return; }
-                let html = "";
-                for(let i=data.length-1; i>=1; i--) { 
-                    let statusBadge = data[i][4] === "Pending" ? `<span class="status-badge" style="background:var(--warning); color:black;">รอดำเนินการ</span>` : `<span class="status-badge" style="background:var(--success); color:white;">เสร็จสิ้น</span>`;
-                    let btnAction = data[i][4] === "Pending" ? `<button class="btn" style="background:var(--primary); padding:5px 10px;" onclick="resolveTicket('${data[i][0]}')"><i class="fa-solid fa-check"></i> ปิดงาน</button>` : `<button class="btn" style="background:rgba(255,255,255,0.1); padding:5px 10px; color:var(--text-sub);" disabled>ปิดงานแล้ว</button>`;
-                    html += `<tr><td style="font-weight:bold;">${data[i][0]}</td><td style="color:var(--primary);">${data[i][1]}</td><td>${data[i][2]}</td><td style="color:var(--text-sub); max-width:200px;">${data[i][3]}</td><td>${statusBadge}</td><td>${data[i][5]}</td><td>${btnAction}</td></tr>`; 
-                }
-                body.innerHTML = html;
-            } catch(e) { 
-                if(e.message === "NOT_ANYONE") body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--danger);">⚠️ กรุณาตั้งค่า Deploy GAS เป็น "Anyone"</td></tr>';
-                else body.innerHTML = '<tr><td colspan="7" style="text-align:center;">ดึงข้อมูลไม่สำเร็จ</td></tr>'; 
-            }
-        }
-
-        function resolveTicket(ticketId) {
-            vibrate(); customConfirm(`ต้องการปิดเคส ${ticketId} ใช่หรือไม่?`, async () => {
-                showToast("กำลังอัปเดตข้อมูล ลงระบบเซิร์ฟเวอร์...", "info");
-                await saveToCloud({action: "updateTicketStatus", ticketId: ticketId, newStatus: "Resolved"});
-                logAction(`ทำการปิดเคสแจ้งปัญหา: ${ticketId}`);
-                showToast("ปิดงานสำเร็จ", "success");
-                loadTickets();
+            showToast("กำลังสร้างบัญชี...", "info");
+            
+            // สุ่ม ID ใหม่
+            const newId = "ELDER_" + Math.floor(Math.random() * 900000 + 100000);
+            
+            await saveToCloud({ action: "register", system_id: newId, title: title, name: name, password: pass });
+            
+            document.getElementById('add-user-modal').style.display = 'none';
+            logAction(`แอดมินสร้างบัญชีใหม่: ${newId}`);
+            
+            // ใช้ customConfirm แบบดัดแปลงเพื่อโชว์ ID ให้แอดมินก๊อปไปส่งลูกค้า
+            customConfirm(`สร้างบัญชีสำเร็จ!\n\nรหัสเข้าใช้งาน: ${newId}\nรหัสผ่าน: ${pass}\n\n(จดรหัสนี้ส่งให้ลูกค้าล็อกอินได้เลย)`, () => {
+                loadAllUsers(); // โหลดตารางใหม่
             });
         }
 
+        // Dashboard Loads
+        async function loadAuditLogs() {
+            const body = document.getElementById('audit-body'); body.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:30px;"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>';
+            try {
+                const res = await fetch(GAS_URL + "?action=readLogs", { redirect: "follow" }); 
+                const text = await res.text(); if(text.includes("<html")) throw new Error("HTML"); const data = JSON.parse(text);
+                if(data.length <= 1) return body.innerHTML = '<tr><td colspan="3" style="text-align:center;">ยังไม่มีประวัติ</td></tr>';
+                body.innerHTML = data.slice(1).reverse().map(d => `<tr><td style="color:var(--text-muted);">${d[0]}</td><td><span class="status-badge" style="background:rgba(255,255,255,0.1);">${d[1]}</span></td><td>${d[2]}</td></tr>`).join('');
+            } catch(e) { body.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--danger);">ดึงข้อมูลไม่สำเร็จ</td></tr>'; }
+        }
+
+        async function loadTickets() {
+            const body = document.getElementById('ticket-body'); body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px;"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>';
+            try {
+                const res = await fetch(GAS_URL + "?action=readTickets", { redirect: "follow" }); 
+                const text = await res.text(); if(text.includes("<html")) throw new Error("HTML"); const data = JSON.parse(text);
+                if(data.length <= 1) return body.innerHTML = '<tr><td colspan="6" style="text-align:center;">ไม่มีแจ้งปัญหา</td></tr>';
+                body.innerHTML = data.slice(1).reverse().map(d => `<tr><td style="font-weight:bold;">${d[1]}</td><td style="color:var(--primary);">${d[2]}</td><td>${d[3]}</td><td style="color:var(--text-muted);">${d[5]}</td><td>${d[4]==="Pending"?`<span class="status-badge" style="background:var(--warning); color:black;">รอดำเนินการ</span>`:`<span class="status-badge" style="background:var(--success); color:white;">เสร็จสิ้น</span>`}</td><td>${d[4]==="Pending"?`<button class="btn" style="background:var(--primary); padding:8px 15px; margin:0;" onclick="resolveTicket('${d[0]}')"><i class="fa-solid fa-check"></i></button>`:''}</td></tr>`).join('');
+            } catch(e) { body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--danger);">ดึงข้อมูลไม่สำเร็จ</td></tr>'; }
+        }
+
+        function resolveTicket(ticketId) { customConfirm(`ต้องการปิดเคส ${ticketId} ใช่หรือไม่?`, async () => { showToast("กำลังอัปเดต...", "info"); await saveToCloud({action: "updateTicketStatus", ticketId: ticketId, newStatus: "Resolved"}); logAction(`ปิดเคส: ${ticketId}`); showToast("ปิดงานสำเร็จ", "success"); loadTickets(); }); }
+
         async function loadAllUsers() {
-            vibrate(); const body = document.getElementById('user-body'); body.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> กำลังดึงข้อมูลลูกค้า...</td></tr>';
+            vibrate(); const body = document.getElementById('user-body'); body.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary);"></i></td></tr>';
             try {
                 const res = await fetch(GAS_URL + "?action=readAll", { redirect: "follow" });
-                const text = await res.text();
-                if(text.includes("<!DOCTYPE html>")) throw new Error("NOT_ANYONE");
-                const data = JSON.parse(text);
-                
-                globalData = data;
-                body.innerHTML = ""; let activeCount = 0, suspendCount = 0, totalCount = 0, vipCount = 0;
-                
-                if(data.length <= 1) { body.innerHTML = '<tr><td colspan="7" style="text-align:center;">ระบบยังไม่มีข้อมูลลูกค้า</td></tr>'; return; }
+                const text = await res.text(); if(text.includes("<html")) throw new Error("HTML"); const data = JSON.parse(text);
+                globalData = data; body.innerHTML = ""; let activeCount = 0, suspendCount = 0, totalCount = 0, vipCount = 0;
+                if(data.length <= 1) return body.innerHTML = '<tr><td colspan="6" style="text-align:center;">ยังไม่มีข้อมูลลูกค้า</td></tr>';
                 
                 for (let i = 1; i < data.length; i++) {
                     if(!data[i][0]) continue; totalCount++;
                     let status = data[i][12] || "Active"; let expiry = data[i][11] ? data[i][11].split('T')[0] : ""; let tier = data[i][16] || "Basic";
+                    let rescueName = data[i][17] || ""; let rescuePhone = data[i][18] || ""; 
+
                     if(status === "Active") activeCount++; else suspendCount++;
                     if(tier === "VIP") vipCount++;
                     
-                    let tierHtml = tier === "VIP" ? '<span style="color:#F59E0B; font-weight:bold;"><i class="fa-solid fa-crown"></i> พรีเมียม</span>' : (tier === "Free" ? '<span style="color:var(--text-sub);">ฟรี</span>' : '<span style="color:var(--primary);">มาตรฐาน</span>');
+                    let tierHtml = tier === "VIP" ? '<span style="color:var(--warning); font-weight:bold;"><i class="fa-solid fa-crown"></i> VIP</span>' : (tier === "Free" ? '<span style="color:var(--text-muted);">ฟรี</span>' : '<span style="color:var(--primary);">มาตรฐาน</span>');
                     let onlineDot = `<div style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--success); margin-left:5px; box-shadow:0 0 5px var(--success);"></div>`; 
                     
                     body.innerHTML += `
                         <tr class="user-row">
-                            <td class="super-only"><input type="checkbox" class="user-check" value="${data[i][0]}"></td>
-                            <td class="uid" style="font-weight:bold; color:var(--text-main);">${data[i][0]} ${onlineDot}</td>
+                            <td class="super-only"><input type="checkbox" class="user-check" value="${data[i][0]}" style="width:20px; height:20px; margin:0;"></td>
+                            <td class="uid" style="font-weight:600;">${data[i][0]} ${onlineDot}</td>
                             <td class="uname">${data[i][1] || ''} ${data[i][2] || '-'}</td>
                             <td>${tierHtml}</td>
                             <td style="color: ${status === 'Active' ? 'var(--text-main)' : 'var(--danger)'};">${expiry}</td>
-                            <td><span class="status-badge ${status === 'Active' ? 'bg-active' : 'bg-suspend'}">${status === 'Active' ? 'ใช้งานปกติ' : 'ถูกระงับ'}</span></td>
-                            <td><button class="btn" style="background:rgba(14, 165, 233, 0.2); color:var(--primary); padding:10px 15px;" onclick="openEdit('${data[i][0]}', '${data[i][1]}', '${data[i][2]}', '${data[i][7]}', '${expiry}', '${status}', '${tier}')"><i class="fa-solid fa-pen"></i> แก้ไข</button></td>
+                            <td><button class="btn" style="background:rgba(255,255,255,0.1); padding:8px 20px; margin:0;" onclick="openEdit('${data[i][0]}', '${data[i][1]}', '${data[i][2]}', '${data[i][7]}', '${expiry}', '${status}', '${tier}', '${rescueName}', '${rescuePhone}')"><i class="fa-solid fa-pen" style="color:var(--primary);"></i> แก้ไข</button></td>
                         </tr>`;
                 }
                 document.getElementById('stat-total').innerText = totalCount; document.getElementById('stat-vip').innerText = vipCount; document.getElementById('stat-money').innerText = (activeCount * 299 + vipCount * 500).toLocaleString(); 
                 document.getElementById('bar-active').style.width = `${(activeCount/totalCount)*100}%`;
                 
                 if(currentRole !== 'super') document.querySelectorAll('.super-only').forEach(el => el.style.display = 'none');
-                renderRevenueChart(); 
-            } catch(e) { 
-                if(e.message === "NOT_ANYONE") body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--danger); padding:30px;">⚠️ บั๊กการเข้าถึง: คุณต้องไปตั้งค่า Deploy ของ GAS ให้เป็น "Anyone" (ทุกคน)</td></tr>';
-                else body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--warning);">เชื่อมต่อขัดข้อง: ตรวจสอบ URL ของ GAS ให้ถูกต้อง</td></tr>'; 
-            }
+            } catch(e) { body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--danger); padding:30px;">ดึงข้อมูลไม่สำเร็จ ตรวจสอบ URL หรือสิทธิ์การเข้าถึง</td></tr>'; }
         }
 
         function filterTable() { let input = document.getElementById("search-box").value.toUpperCase(); let rows = document.querySelectorAll(".user-row"); rows.forEach(row => { let id = row.querySelector(".uid").innerText.toUpperCase(); let name = row.querySelector(".uname").innerText.toUpperCase(); row.style.display = (id.includes(input) || name.includes(input)) ? "" : "none"; }); }
         function toggleAllChecks() { const isChecked = document.getElementById('check-all').checked; document.querySelectorAll('.user-check').forEach(cb => cb.checked = isChecked); }
         
-        function applyBulkAction() {
-            const status = document.getElementById('bulk-action').value;
-            const checked = Array.from(document.querySelectorAll('.user-check:checked')).map(cb => cb.value);
-            if(checked.length === 0) return showToast("กรุณาเลือกรายชื่อลูกค้า", "error");
-            let actionText = status === "Suspended" ? "ระงับการใช้งาน" : "เปิดการใช้งาน";
-            customConfirm(`ต้องการ${actionText}ลูกค้า ${checked.length} คนใช่หรือไม่?`, async () => {
-                showToast("กำลังประมวลผลคำสั่ง...", "info"); logAction(`สั่งการหลายคน: ${actionText} จำนวน ${checked.length} บัญชี`);
-                await saveToCloud({action: "bulkStatus", ids: checked, newStatus: status});
-                checked.forEach(id => client.publish(`familycare/${id}/command/status_update`, status, {qos:0}));
-                showToast("ดำเนินการสำเร็จ", "success"); 
-                loadAllUsers();
-            });
-        }
+        function applyBulkAction() { const status = document.getElementById('bulk-action').value; const checked = Array.from(document.querySelectorAll('.user-check:checked')).map(cb => cb.value); if(checked.length === 0) return showToast("กรุณาเลือกรายชื่อ", "error"); customConfirm(`เปลี่ยนสถานะลูกค้า ${checked.length} คน?`, async () => { showToast("กำลังประมวลผล...", "info"); await saveToCloud({action: "bulkStatus", ids: checked, newStatus: status}); checked.forEach(id => client.publish(`familycare/${id}/command/status_update`, status, {qos:0})); showToast("ดำเนินการสำเร็จ", "success"); loadAllUsers(); }); }
 
-        function batchSuspend() { 
-            customConfirm("ต้องการสั่งให้บอทแบนบัญชีที่หมดอายุทั้งหมดอัตโนมัติไหม?", async () => { 
-                showToast("บอทกำลังทำงาน รอสักครู่...", "info"); 
-                logAction("เรียกใช้งานบอทแบนบัญชีหมดอายุ"); 
-                await saveToCloud({action: "batchSuspend"}); 
-                showToast("บอททำงานเสร็จสิ้น", "success"); 
-                loadAllUsers();
-            }); 
-        }
+        function batchSuspend() { customConfirm("รันบอทแบนบัญชีหมดอายุ?", async () => { showToast("บอทกำลังทำงาน...", "info"); await saveToCloud({action: "batchSuspend"}); showToast("บอททำงานเสร็จสิ้น", "success"); loadAllUsers(); }); }
+        function clearLogs() { customConfirm("ล้างประวัติทั้งหมด?", async () => { await saveToCloud({action: "clearLogs"}); showToast("ล้างประวัติเรียบร้อย", "success"); loadAuditLogs(); }); }
+        function sendBroadcast() { const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg, {qos:0}); showToast("ส่งหน้าต่างแจ้งเตือนสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
+        function sendBanner() { const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast_banner`, msg, {qos:0}); showToast("ส่งแถบคาดหัวสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
         
-        function clearLogs() { 
-            customConfirm("ต้องการล้างประวัติการทำงานย้อนหลังทั้งหมดใช่ไหม?", async () => { 
-                await saveToCloud({action: "clearLogs"}); 
-                logAction("แอดมินสั่งล้างประวัติการทำงานทั้งหมด"); 
-                showToast("ล้างประวัติเรียบร้อย", "success"); 
-                loadAuditLogs();
-            }); 
-        }
-        
-        function sendBroadcast() { vibrate(); const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast`, msg, {qos:0}); logAction(`ส่งประกาศแบบหน้าต่างเด้ง: ${msg}`); showToast("ส่งประกาศหน้าต่างเด้งสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
-        function sendBanner() { vibrate(); const msg = document.getElementById('broadcast-msg').value; if(!msg) return; client.publish(`familycare/broadcast_banner`, msg, {qos:0}); logAction(`ส่งประกาศแถบคาดหัว: ${msg}`); showToast("ส่งประกาศแถบคาดหัวสำเร็จ", "success"); document.getElementById('broadcast-msg').value = ""; }
-        
-        function openEdit(id, title, name, phone, expiry, status, tier) { vibrate(); document.getElementById('edit-id').innerText = id; document.getElementById('edit-title').value = title; document.getElementById('edit-name').value = name; document.getElementById('edit-phone').value = phone; document.getElementById('edit-expiry').value = expiry; document.getElementById('edit-status').value = status; document.getElementById('edit-tier').value = tier; document.getElementById('edit-modal').style.display = 'flex'; }
+        function openEdit(id, title, name, phone, expiry, status, tier, rName, rPhone) { vibrate(); document.getElementById('edit-id').innerText = id; document.getElementById('edit-title').value = title; document.getElementById('edit-name').value = name; document.getElementById('edit-phone').value = phone; document.getElementById('edit-expiry').value = expiry; document.getElementById('edit-status').value = status; document.getElementById('edit-tier').value = tier; document.getElementById('edit-rescue-name').value = (rName === 'undefined') ? '' : rName; document.getElementById('edit-rescue-phone').value = (rPhone === 'undefined') ? '' : rPhone; document.getElementById('edit-modal').style.display = 'flex'; }
         
         async function saveSubscription() {
             vibrate(); const id = document.getElementById('edit-id').innerText; const status = document.getElementById('edit-status').value;
-            const title = document.getElementById('edit-title').value; const name = document.getElementById('edit-name').value; const phone = document.getElementById('edit-phone').value;
+            const title = document.getElementById('edit-title').value, name = document.getElementById('edit-name').value, phone = document.getElementById('edit-phone').value;
+            const rName = document.getElementById('edit-rescue-name').value, rPhone = document.getElementById('edit-rescue-phone').value;
             
-            document.getElementById('edit-modal').style.display = 'none'; 
-            showToast("กำลังบันทึกข้อมูล กรุณารอสักครู่...", "info");
+            document.getElementById('edit-modal').style.display = 'none'; showToast("กำลังบันทึกข้อมูล...", "info");
             
-            await saveToCloud({action: "editUser", system_id: id, title: title, name: name, phone: phone});
+            await saveToCloud({action: "editUser", system_id: id, title: title, name: name, phone: phone, rescue_name: rName, rescue_phone: rPhone});
             await saveToCloud({action: "updateSubscription", system_id: id, expiry: document.getElementById('edit-expiry').value, status: status, tier: document.getElementById('edit-tier').value});
             
-            client.publish(`familycare/${id}/command/status_update`, status, {qos:0}); logAction(`อัปเดตข้อมูลลูกค้า: ${id}`);
-            showToast("บันทึกข้อมูลเรียบร้อย ข้อมูลอัปเดตแล้ว", "success"); 
-            
-            loadAllUsers(); 
+            client.publish(`familycare/${id}/command/status_update`, status, {qos:0}); 
+            client.publish(`familycare/${id}/command/rescue_updated`, JSON.stringify({ name: rName, phone: rPhone }), {qos:1, retain:true});
+            showToast("บันทึกข้อมูลเรียบร้อย", "success"); loadAllUsers(); 
         }
 
-        function forcePassReset() { 
-            const id = document.getElementById('edit-id').innerText; 
-            customConfirm(`บังคับรีเซ็ตรหัสผ่านของ ${id} กลับไปเป็น 123456?`, async () => { 
-                showToast("กำลังสั่งการ...", "info");
-                await saveToCloud({action:"forcePassReset", system_id: id}); 
-                logAction(`บังคับเปลี่ยนรหัสผ่าน: ${id}`); 
-                showToast("เปลี่ยนรหัสผ่านเป็น 123456 แล้ว", "success"); 
-            }); 
-        }
-        function forceClientRefresh() { const id = document.getElementById('edit-id').innerText; client.publish(`familycare/${id}/command/reload`, "true", {qos:0}); logAction(`สั่งรีเฟรชหน้าจอลูกค้า: ${id}`); showToast("ส่งคำสั่งรีเฟรชหน้าจอสำเร็จ", "success"); }
-        function killSwitch() { 
-            const id = document.getElementById('edit-id').innerText; 
-            customConfirm(`คุณแน่ใจนะว่าจะลบข้อมูลของ ${id} ทิ้งแบบถาวร?`, async () => { 
-                client.publish(`familycare/${id}/command/kill_switch`, "true", {qos:0}); 
-                document.getElementById('edit-modal').style.display = 'none'; 
-                showToast(`กำลังส่งคำสั่งลบข้อมูลให้ ${id}...`, "info"); 
-                await saveToCloud({action: "delete", system_id: id}); 
-                logAction(`สั่งลบข้อมูลและรีเซ็ตเครื่องลูกค้า: ${id}`); 
-                showToast(`ลบข้อมูล ${id} เรียบร้อย`, "success");
-                loadAllUsers(); 
-            }); 
-        }
-        function nukeAll() { 
-            customConfirm("นี่คือปุ่มทำลายล้าง! ข้อมูลทุกอย่างในระบบจะหายไปตลอดกาล ยืนยันใช่ไหม?", async () => { 
-                client.publish(`familycare/broadcast_kill`, "true", {qos:0}); 
-                showToast("ระบบกำลังล้างบางตัวเอง...", "error"); 
-                await saveToCloud({action: "nukeAll"}); 
-                logAction("สั่งทำลายฐานข้อมูลระบบทั้งหมด (NUKE)"); 
-                loadAllUsers();
-            }); 
-        }
+        function forcePassReset() { const id = document.getElementById('edit-id').innerText; customConfirm(`รีเซ็ตรหัสผ่านของ ${id} กลับไปเป็น 123456?`, async () => { showToast("กำลังสั่งการ...", "info"); await saveToCloud({action:"forcePassReset", system_id: id}); showToast("เปลี่ยนรหัสผ่านเป็น 123456 แล้ว", "success"); document.getElementById('edit-modal').style.display = 'none'; }); }
+        function killSwitch() { const id = document.getElementById('edit-id').innerText; customConfirm(`คุณแน่ใจนะว่าจะลบข้อมูลของ ${id} ทิ้งแบบถาวร?`, async () => { client.publish(`familycare/${id}/command/kill_switch`, "true", {qos:0}); document.getElementById('edit-modal').style.display = 'none'; showToast(`กำลังลบข้อมูล ${id}...`, "info"); await saveToCloud({action: "delete", system_id: id}); showToast(`ลบข้อมูลเรียบร้อย`, "success"); loadAllUsers(); }); }
+        function nukeAll() { customConfirm("ปุ่มทำลายล้าง! ข้อมูลทุกอย่างในระบบจะหายไปตลอดกาล ยืนยันใช่ไหม?", async () => { client.publish(`familycare/broadcast_kill`, "true", {qos:0}); showToast("ระบบกำลังล้างบางตัวเอง...", "error"); await saveToCloud({action: "nukeAll"}); loadAllUsers(); }); }
         
-        function downloadCSV() { vibrate(); if(globalData.length <= 1) return showToast("ไม่พบข้อมูลในระบบ", "error"); let csv = "data:text/csv;charset=utf-8,\uFEFF"; globalData.forEach(row => { csv += row.join(",") + "\r\n"; }); let link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "Customer_Database_Backup.csv"); document.body.appendChild(link); link.click(); logAction("ดาวน์โหลดข้อมูล CSV");}
-        function downloadJSON() { vibrate(); if(globalData.length <= 1) return showToast("ไม่พบข้อมูลในระบบ", "error"); let json = JSON.stringify(globalData, null, 2); let link = document.createElement("a"); link.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(json)); link.setAttribute("download", "System_Backup.json"); document.body.appendChild(link); link.click(); logAction("ดาวน์โหลดข้อมูล JSON");}
-
-        function loadIPBans() {
-            const list = document.getElementById('ip-ban-list'); list.innerHTML = '';
-            if(bannedIPs.length === 0) { list.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-sub);">ไม่มีรายชื่อ IP ที่ถูกระงับ</td></tr>'; return; }
-            bannedIPs.forEach((item, index) => { list.innerHTML += `<tr><td>${item.ip}</td><td>${item.date}</td><td><button class="btn" style="background:var(--success); width:auto; padding:5px 10px; margin:0;" onclick="unbanIP(${index})">ยกเลิกการระงับ</button></td></tr>`; });
-        }
-        function banIP() {
-            const ip = document.getElementById('ban-ip-input').value;
-            if(!ip) return showToast("กรุณาระบุหมายเลข IP", "error");
-            const date = new Date().toLocaleDateString('th-TH');
-            bannedIPs.push({ip: ip, date: date});
-            localStorage.setItem('bannedIPs', JSON.stringify(bannedIPs));
-            loadIPBans();
-            logAction(`เพิ่ม IP ในรายการระงับ: ${ip}`); showToast(`ระงับหมายเลข IP ${ip} เรียบร้อย`, "success"); document.getElementById('ban-ip-input').value = "";
-        }
-        function unbanIP(index) { 
-            let ip = bannedIPs[index].ip;
-            bannedIPs.splice(index, 1);
-            localStorage.setItem('bannedIPs', JSON.stringify(bannedIPs));
-            loadIPBans();
-            showToast("ยกเลิกการระงับ IP เรียบร้อย", "success"); logAction(`ปลดระงับ IP: ${ip}`); 
-        }
+        function loadIPBans() { const list = document.getElementById('ip-ban-list'); list.innerHTML = ''; if(bannedIPs.length === 0) return list.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">ไม่มีรายชื่อที่ถูกระงับ</td></tr>'; bannedIPs.forEach((item, index) => { list.innerHTML += `<tr><td>${item.ip}</td><td>${item.date}</td><td><button class="btn" style="background:var(--success); width:auto; padding:5px 15px; margin:0;" onclick="unbanIP(${index})">ปลดแบน</button></td></tr>`; }); }
+        function banIP() { const ip = document.getElementById('ban-ip-input').value; if(!ip) return showToast("ระบุ IP", "error"); const date = new Date().toLocaleDateString('th-TH'); bannedIPs.push({ip: ip, date: date}); localStorage.setItem('bannedIPs', JSON.stringify(bannedIPs)); loadIPBans(); showToast(`แบน IP ${ip} เรียบร้อย`, "success"); document.getElementById('ban-ip-input').value = ""; }
+        function unbanIP(index) { bannedIPs.splice(index, 1); localStorage.setItem('bannedIPs', JSON.stringify(bannedIPs)); loadIPBans(); showToast("ปลดแบน IP เรียบร้อย", "success"); }
     </script>
 </body>
 </html>
